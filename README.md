@@ -14,7 +14,7 @@
 
 ## Instructions:
 
-### Setup:
+### Setup: (Skip this step if you want, I provided some)
 > 1. Copy your favorate song's dat files into the patternData file (and rename them to anything, but keep the extension as .dat).
 > 2. Done.
 

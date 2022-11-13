@@ -49,4 +49,4 @@
 > 2. You can also use the UI exactly the same as the original LoLighter, I added the command line and drag/drop for speed, and for automating.
 
 
-## [Example Song](tinyurl.com/nhc96snz)
+## [Example Song](https://tinyurl.com/nhc96snz)

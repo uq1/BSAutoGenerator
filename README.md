@@ -49,4 +49,4 @@
 > 2. You can also use the UI exactly the same as the original LoLighter, I added the command line and drag/drop for speed, and for automating.
 
 
-## [Example Song](https://skystudioapps.com/bs-viewer/?url=https://github.com/uq1/BSAutoGenerator/blob/main/Example Songs/Benny Hill - TV Theme (RealFlow v2).zip?raw=true)
+## [Example Song](tinyurl.com/nhc96snz)

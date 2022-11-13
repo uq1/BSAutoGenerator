@@ -1,4 +1,6 @@
-A beat saber automatic map generator based loosely on [Lolighter](https://github.com/Loloppe/Lolighter/) but using completely different automapping methods.
+# BSAutoMapper
+
+###### A beat saber automatic map generator based loosely on [Lolighter](https://github.com/Loloppe/Lolighter/) but using completely different automapping methods.
 
 This generator is based more on casual and fun play, not biased toward expert and expert+ levels, but it will do those just fine as well.
 

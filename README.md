@@ -47,3 +47,6 @@
 ### Notes:
 > 1. If you specify or drag/drop a .dat file (instead of a ogg/mp3 file), it will only auto-generate lighting for your current map.
 > 2. You can also use the UI exactly the same as the original LoLighter, I added the command line and drag/drop for speed, and for automating.
+
+
+## [Example Song](https://cors.bsmg.dev/https://github.com/uq1/BSAutoGenerator/blob/main/Example%20Songs/Benny%20Hill%20-%20TV%20Theme%20(RealFlow%20v2).zip?raw=true)

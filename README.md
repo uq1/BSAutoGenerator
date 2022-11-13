@@ -40,8 +40,8 @@
 > BSAutoGenerator <optional_command_line_options_below> c:\soundpath\soundfile.ogg
 
 ### Custom Command Line Options:
-> --silent      run in a more silent mode, it is pretty silent though anyway.
-> --beatsage    use beat sage to generate the maps, should you ever want to.
+> --silent - run in a more silent mode, it is pretty silent though anyway.
+> --beatsage - use beat sage to generate the maps, should you ever want to.
 
 ### Notes:
 > 1. If you specify or drag/drop a .dat file (instead of a ogg/mp3 file), it will only auto-generate lighting for your current map.

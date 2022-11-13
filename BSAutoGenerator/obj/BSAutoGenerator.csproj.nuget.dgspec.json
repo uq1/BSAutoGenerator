@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "G:\\! Programming !\\Beatsaber-BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj": {}
+    "G:\\! Programming !\\BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj": {}
   },
   "projects": {
-    "G:\\! Programming !\\Beatsaber-BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj": {
+    "G:\\! Programming !\\BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "G:\\! Programming !\\Beatsaber-BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj",
+        "projectUniqueName": "G:\\! Programming !\\BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj",
         "projectName": "BSAutoGenerator",
-        "projectPath": "G:\\! Programming !\\Beatsaber-BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj",
+        "projectPath": "G:\\! Programming !\\BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj",
         "packagesPath": "C:\\Users\\unique1\\.nuget\\packages\\",
-        "outputPath": "G:\\! Programming !\\Beatsaber-BSAutoGenerator\\BSAutoGenerator\\obj\\",
+        "outputPath": "G:\\! Programming !\\BSAutoGenerator\\BSAutoGenerator\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",

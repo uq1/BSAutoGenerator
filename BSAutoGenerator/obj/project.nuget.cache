@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "CFPInV6Qcd2rNf+sYexxhK6LeV/aU563kdz/aWopPLL37ydXVxR8ugqcP5XFKdW3vupDA59GuBDoZ/ov186onw==",
+  "dgSpecHash": "kNFgK0ei9cTtnFzw6JWTkpfAS0qVxZQxk31q50WnaKQMCHcTcU0JBuPaVp0P8eF0CKK+fbPH8nOshgmeg5SV2A==",
   "success": true,
-  "projectFilePath": "G:\\! Programming !\\Beatsaber-BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj",
+  "projectFilePath": "G:\\! Programming !\\BSAutoGenerator\\BSAutoGenerator\\BSAutoGenerator.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\unique1\\.nuget\\packages\\costura.fody\\5.7.0\\costura.fody.5.7.0.nupkg.sha512",
     "C:\\Users\\unique1\\.nuget\\packages\\fody\\6.5.5\\fody.6.5.5.nupkg.sha512",

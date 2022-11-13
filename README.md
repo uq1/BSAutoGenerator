@@ -7,6 +7,7 @@
 
 > _You provide your favorate example map dat files (put them in the patternData folder, however many you want. More will add more options but slow the generation a little). It calculates patterns based on those for new maps, using pure logic, not dumb AI guesswork (although a BeatSage command line is also available, should you want chaotic maps, see below)._
 
+#### Download the latest release [HERE](https://github.com/uq1/BSAutoGenerator/releases/tag/release)
 
 #### Based on Lolighter 3.0.0 (WIP) by **Loloppe#6435** [HERE](https://github.com/Loloppe/Lolighter/)
 

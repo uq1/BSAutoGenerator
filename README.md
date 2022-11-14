@@ -2,10 +2,12 @@
 
 #### A beat saber automatic map generator based on [Lolighter](https://github.com/Loloppe/Lolighter/) but using completely different automapping methods.
 
-**This generator is based more on casual and fun play, not biased toward expert and expert+ levels, but it will do those just fine as well.**
+> _I tried all the AI based auto-mapper's out there and quickly came to one conclusion, THEY ALL SUCK!!! ... so ..._
+
+**This generator is based more on casual and fun play (easy, normal and hard levels), not biased toward expert and expert+ levels, but it will do those just fine as well. It is focused on map flow. I want to feel like i'm dancing, not obtaining physical damage trying to hit impossible note combinations...**
 
 
-> _You provide your favorate example map dat files (put them in the patternData folder, however many you want. More will add more options but slow the generation a little). It calculates patterns based on those for new maps, using pure logic, not dumb AI guesswork (although a BeatSage command line is also available, should you want chaotic maps, see below)._
+> _You provide your favorate example map dat files (put them in the patternData folder, however many you want. More will add more options but slow the generation a little). It calculates patterns based on those for new maps, using pure logic, not dumb AI guesswork (although a BeatSage command line is also available, should you want the chaotic maps, see below)._
 
 #### Download the latest release [HERE](https://github.com/uq1/BSAutoGenerator/releases/tag/release)
 
@@ -14,8 +16,8 @@
 
 ## Instructions:
 
-### Setup:
-> 1. Copy your favorate song's dat files into the patternData file (and rename them to anything, but keep the extension as .dat).
+### Setup: (Skip this step if you want, I provided some)
+> 1. Copy your favorate song's (favorate difficulty levels) dat files into the patternData folder (and rename them to anything, but keep the extension as .dat).
 > 2. Done.
 
 ### Method 1: Drag and Drop to exe.
@@ -42,8 +44,11 @@
 
 ### Custom Command Line Options:
 > **--silent**    - run in a more silent mode, it is pretty silent though anyway.
-> **--beatsage**  - use beat sage to generate the maps, should you ever want to.
+> **--beatsage**  - use beat sage to generate the maps, should you ever want to, takes longer and they are worse.
 
 ### Notes:
 > 1. If you specify or drag/drop a .dat file (instead of a ogg/mp3 file), it will only auto-generate lighting for your current map.
 > 2. You can also use the UI exactly the same as the original LoLighter, I added the command line and drag/drop for speed, and for automating.
+
+
+## [Example Song](https://tinyurl.com/nhc96snz)

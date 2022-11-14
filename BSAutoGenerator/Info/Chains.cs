@@ -721,7 +721,7 @@ namespace BSAutoGenerator.Info.Chains
         int IntDiff(int a, int b)
         {
             int diff = a - b;
-            return (diff > 0) ? diff : diff;
+            return (diff > 0) ? diff : -diff;
         }
 
         int NoteMatchesChainStart(ChainOption option, ColorNote redPreviousNote, ColorNote bluePreviousNote)

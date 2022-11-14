@@ -619,7 +619,7 @@ namespace BSAutoGenerator.Info.Patterns
         int IntDiff(int a, int b)
         {
             int diff = a - b;
-            return (diff > 0) ? diff : diff;
+            return (diff > 0) ? diff : -diff;
         }
 
         int NoteMatchesPatternStart(PatternOption option, ColorNote redPreviousNote, ColorNote bluePreviousNote)

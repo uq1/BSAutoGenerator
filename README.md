@@ -17,7 +17,7 @@
 ## Instructions:
 
 ### Setup: (Skip this step if you want, I provided some)
-> 1. Copy your favorate song's dat files into the patternData folder (and rename them to anything, but keep the extension as .dat).
+> 1. Copy your favorate song's (favorate difficulty levels) dat files into the patternData folder (and rename them to anything, but keep the extension as .dat).
 > 2. Done.
 
 ### Method 1: Drag and Drop to exe.

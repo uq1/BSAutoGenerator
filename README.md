@@ -5,7 +5,7 @@
 **This generator is based more on casual and fun play (easy, normal and hard levels), not biased toward expert and expert+ levels, but it will do those just fine as well.**
 
 
-> _You provide your favorate example map dat files (put them in the patternData folder, however many you want. More will add more options but slow the generation a little). It calculates patterns based on those for new maps, using pure logic, not dumb AI guesswork (although a BeatSage command line is also available, should you want the same idiotic, chaotic, AI systems that are destroying the internet, in your maps, see below)._
+> _You provide your favorate example map dat files (put them in the patternData folder, however many you want. More will add more options but slow the generation a little). It calculates patterns based on those for new maps, using pure logic, not dumb AI guesswork (although a BeatSage command line is also available, should you want the chaotic maps, see below)._
 
 #### Download the latest release [HERE](https://github.com/uq1/BSAutoGenerator/releases/tag/release)
 

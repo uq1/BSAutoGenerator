@@ -2,6 +2,8 @@
 
 #### A beat saber automatic map generator based on [Lolighter](https://github.com/Loloppe/Lolighter/) but using completely different automapping methods.
 
+> _I tried all the AI based auto-mapper's out there and quickly came to one conclusion, THEY ALL SUCK!!! ... so ..._
+
 **This generator is based more on casual and fun play (easy, normal and hard levels), not biased toward expert and expert+ levels, but it will do those just fine as well.**
 
 

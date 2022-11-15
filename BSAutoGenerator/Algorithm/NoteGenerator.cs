@@ -1,4 +1,5 @@
 ﻿//#define _SCRIPTED_FLOW_
+//#define _DEBUG_PATTERN_USAGE_
 
 using BSAutoGenerator.Data.Structure;
 using BSAutoGenerator.Data.V2;
@@ -16,6 +17,7 @@ using System.Reflection;
 using System.Windows;
 using BSAutoGenerator.Info.Patterns;
 using static BSAutoGenerator.Info.Patterns.Patterns;
+using System.CodeDom;
 
 namespace BSAutoGenerator.Algorithm
 {
@@ -23,6 +25,12 @@ namespace BSAutoGenerator.Algorithm
     {
         static Patterns scripted_patterns = new Patterns();
         static Chains scripted_chains = new Chains();
+
+        static int IntDiff(int a, int b)
+        {
+            int diff = a - b;
+            return (diff >= 0) ? diff : -diff;
+        }
 
         /// <summary>
         /// Method to generate new ColorNote and BurstSliderData from timings (in beat).
@@ -32,11 +40,12 @@ namespace BSAutoGenerator.Algorithm
         /// <param name="bpm">Main BPM of the song</param>
         /// <param name="limiter">Allow backhanded when off</param>
         /// <returns>Notes and Chains (for now)</returns>
-        static public (List<ColorNote>, List<BurstSliderData>) AutoMapper(List<float> timings, float bpm, bool limiter)
+        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) AutoMapper(List<float> timings, float bpm, bool limiter)
         {
             // Our main list where we will store the generated Notes and Chains.
             List<ColorNote> notes = new();
             List<BurstSliderData> chains = new();
+            List<Obstacle> obstacles = new();
 
             ColorNote previous_blue = null;
             ColorNote previous_red = null;
@@ -462,26 +471,14 @@ namespace BSAutoGenerator.Algorithm
                     int patternCounter = 0;
 
                     // Look for new chains...
-                    /*for (int j = i; j < i + scripted_patterns.GetMaxAvailablePatternLength() && j < notes.Count - 1; j += 2)
-                    {
-                        if (notes[j].beat != notes[j + 1].beat && patternCounter < scripted_patterns.GetMaxAvailablePatternLength())
-                        {// Continue chain count...
-                            skipTo = j;
-                            patternCounter = (j - i);
-                        }
-                        else
-                        {// Chain ends here...
-                            break;
-                        }
-                    }*/
-                    for (int j = 0; j < scripted_patterns.GetMaxAvailablePatternLength(); j += 2)
+                    for (int j = 0; j < scripted_patterns.GetMaxAvailablePatternLength(); j++)
                     {
                         if (j + i + 1 >= notes.Count) break;
 
                         if (notes[i + j].beat != notes[i + j + 1].beat && patternCounter < scripted_patterns.GetMaxAvailablePatternLength())
                         {// Continue chain count...
-                            skipTo = i + j + 1;// - 1;
-                            patternCounter = j;//(j - (i - 1)) / 2;
+                            skipTo = i + j;
+                            patternCounter = j;
                         }
                         else
                         {// Chain ends here...
@@ -496,6 +493,7 @@ namespace BSAutoGenerator.Algorithm
                         if (chain != null)
                         {// We have a player provided example chain to use, lets do that!
                             //MessageBox.Show("wanted= " + patternCounter + " returned= " + chain.data.Count);
+                            List<ColorNote> added = new List<ColorNote>();
 
                             //for (int j = i - 1; j <= skipTo && j < notes.Count - 1; j += 2)
                             for (int j = 0; j < patternCounter; j++)
@@ -517,6 +515,83 @@ namespace BSAutoGenerator.Algorithm
                                 note1.color = cd.color;
                                 note1.direction = cd.direction;
                                 note1.angle = cd.angle;
+
+                                added.Add(note1);
+                            }
+
+                            if (chain.obstacles.Count > 0)
+                            {// Add walls as well...
+                                List<Obstacle> addedObs = new();
+
+                                for (int j = 0; j < chain.obstacles.Count; j++)
+                                {
+                                    Obstacle wall = chain.obstacles[j];
+
+                                    float startBeat = notes[i].beat + wall.beat + 0.1f;
+                                    float endBeat = 0;
+
+                                    foreach (ColorNote n in added)
+                                    {
+                                        if (n.beat < startBeat)
+                                        {
+                                            continue;
+                                        }
+                                        
+                                        if (wall.height == 5)
+                                        {// Wall...
+                                            if (IntDiff(n.line, wall.index) <= wall.width)
+                                            {// Would be a note inside this wall at this point...
+                                                break;
+                                            }
+                                        }
+                                        else
+                                        {// Roof...
+                                            //MessageBox.Show("ROOF: layer: " + wall.layer + " width: " + wall.width + " height: " + wall.height);
+
+                                            if (n.layer >= wall.layer - 1)
+                                            {// Would be a note inside this wall at this point...
+                                                break;
+                                            }
+                                        }
+                                        
+                                        endBeat = n.beat;
+                                    }
+
+                                    float patternDuration = endBeat - startBeat;
+
+                                    if (patternDuration >= 0.25f)
+                                    {
+                                        // Check overlaps first... Since I extended them to max duration above...
+                                        bool overlapped = false;
+
+                                        foreach (Obstacle oldWall in addedObs)
+                                        {
+                                            if (wall.height == 5)
+                                            {// Wall...
+                                                if (wall.index == oldWall.index)
+                                                {
+                                                    overlapped = true;
+                                                    break;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (wall.layer == oldWall.layer)
+                                                {
+                                                    overlapped = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        if (!overlapped)
+                                        {
+                                            Obstacle newWall = new Obstacle(startBeat, wall.index, wall.layer, /*MathF.Min(wall.duration, */patternDuration/*)*/, wall.width, wall.height);
+                                            obstacles.Add(newWall);
+                                            addedObs.Add(newWall);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -612,12 +687,20 @@ namespace BSAutoGenerator.Algorithm
 
                             //MessageBox.Show("wanted= " + doubleChainCounter + " returned= " + chain.data.Count);
 
+                            float startBeat = notes[i - 1].beat;
+                            float endBeat = notes[skipTo - 1].beat;
+                            float patternDuration = endBeat - startBeat;
+
                             for (int j = i - 1; j <= skipTo && j < notes.Count; j += 2)
                             {
                                 //MessageBox.Show("j= " + j + " (" + (j + 1) + ")  upto= " + upto + " chainCount=" + chain.data.Count + " skipTo = " + skipTo + " notesCount= " + notes.Count);
 
                                 if (upto >= chain.data.Count)
                                 {
+                                    // Store this early-end point value for walls...
+                                    endBeat = notes[j].beat;
+                                    patternDuration = endBeat - startBeat;
+
                                     skipTo = 0;
                                     doubleChainCounter = 0;
                                     break;
@@ -642,6 +725,16 @@ namespace BSAutoGenerator.Algorithm
 
                                 upto++;
                             }
+
+                            /*if (chain.obstacles.Count > 0)
+                            {// Add walls as well...
+                                for (int j = 0; j < chain.obstacles.Count; j++)
+                                {
+                                    Obstacle wall = chain.obstacles[j];
+                                    Obstacle newWall = new Obstacle(startBeat + wall.beat, wall.index, wall.layer, MathF.Min(wall.duration, patternDuration), wall.width, wall.height);
+                                    obstacles.Add(newWall);
+                                }
+                            }*/
                         }
                     }
                     else
@@ -700,8 +793,39 @@ namespace BSAutoGenerator.Algorithm
             }
 #endif //__MY_OLD_FLOW__
 
+#if _DEBUG_PATTERN_USAGE_
+            // For debugging...
+            string patternsUsages = "";
+
+            if (scripted_patterns.patternOptions != null)
+            {
+                patternsUsages += "Pattern Usages:\n";
+
+                for (int i = 4; i >= 0; i--)
+                {
+                    patternsUsages += "[" + i + "] " + scripted_patterns.numWeightUsages[i] + "\n";
+                }
+
+                patternsUsages += "\n";
+            }
+
+            if (scripted_chains.chainOptions != null)
+            {
+                patternsUsages += "Double Pattern Usages:\n";
+
+                for (int i = 4; i >= 0; i--)
+                {
+                    patternsUsages += "[" + i + "] " + scripted_chains.numWeightUsages[i] + "\n";
+                }
+
+                patternsUsages += "\n";
+            }
+
+            MessageBox.Show(patternsUsages);
+#endif //_DEBUG_PATTERN_USAGE_
+
             // We're done
-            return (notes, chains);
+            return (notes, chains, obstacles);
         }
     }
 }

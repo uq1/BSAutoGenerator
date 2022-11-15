@@ -733,8 +733,7 @@ namespace BSAutoGenerator
             List<float> timings = new();
             difficultyData[DiffListBox.SelectedIndex].colorNotes.ForEach(o => timings.Add(o.beat));
 
-            (difficultyData[DiffListBox.SelectedIndex].colorNotes, difficultyData[DiffListBox.SelectedIndex].burstSliders) = NoteGenerator.AutoMapper(timings, bpm, limiter);
-            difficultyData[DiffListBox.SelectedIndex].obstacles = new();
+            (difficultyData[DiffListBox.SelectedIndex].colorNotes, difficultyData[DiffListBox.SelectedIndex].burstSliders, difficultyData[DiffListBox.SelectedIndex].obstacles) = NoteGenerator.AutoMapper(timings, bpm, limiter);
             difficultyData[DiffListBox.SelectedIndex].bombNotes = new();
             FillDataGrid(DiffListBox.SelectedIndex);
         }
@@ -843,6 +842,7 @@ namespace BSAutoGenerator
 
                 List<ColorNote> colorNotes = new();
                 List<BurstSliderData> burstSliders;
+                List<Obstacle> obstacles = new();
 
                 float bpm = 0;
                 bool limiter = true;
@@ -886,14 +886,16 @@ namespace BSAutoGenerator
                 {
                     colorNotes = new();
                     burstSliders = new();
+                    obstacles = new();
 
-                    (colorNotes, burstSliders) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], limiter);
+                    (colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], limiter);
 
                     if(colorNotes.Count > 0)
                     {
                         // Create a new file
                         difficultyData.Add(new(colorNotes));
                         difficultyData[i].burstSliders = burstSliders;
+                        difficultyData[i].obstacles = obstacles;
                     }
                 }
 
@@ -1087,6 +1089,7 @@ namespace BSAutoGenerator
 
                 List <ColorNote> colorNotes = new();
                 List<BurstSliderData> burstSliders;
+                List<Obstacle> obstacles = new();
 
                 List<float> indistinguishableRange = new();
                 /*
@@ -1353,14 +1356,16 @@ namespace BSAutoGenerator
                 {
                     colorNotes = new();
                     burstSliders = new();
+                    obstacles = new();
 
-                    (colorNotes, burstSliders) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], limiter);
+                    (colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], limiter);
 
                     if (colorNotes.Count > 0)
                     {
                         // Create a new file
                         difficultyData.Add(new(colorNotes));
                         difficultyData[i].burstSliders = burstSliders;
+                        difficultyData[i].obstacles = obstacles;
                     }
                 }
 
@@ -1440,8 +1445,7 @@ namespace BSAutoGenerator
             List<float> timings = new();
             difficultyData[DiffListBox.SelectedIndex].colorNotes.ForEach(o => timings.Add(o.beat));
 
-            (difficultyData[DiffListBox.SelectedIndex].colorNotes, difficultyData[DiffListBox.SelectedIndex].burstSliders) = NoteGenerator.AutoMapper(timings, bpm, limiter);
-            difficultyData[DiffListBox.SelectedIndex].obstacles = new();
+            (difficultyData[DiffListBox.SelectedIndex].colorNotes, difficultyData[DiffListBox.SelectedIndex].burstSliders, difficultyData[DiffListBox.SelectedIndex].obstacles) = NoteGenerator.AutoMapper(timings, bpm, limiter);
             difficultyData[DiffListBox.SelectedIndex].bombNotes = new();
             FillDataGrid(DiffListBox.SelectedIndex);
 

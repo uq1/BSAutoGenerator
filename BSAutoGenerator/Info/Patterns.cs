@@ -21,6 +21,8 @@ using static BSAutoGenerator.MainWindow;
 using static System.Reflection.Metadata.BlobBuilder;
 using static System.Windows.Forms.Design.AxImporter;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using static BSAutoGenerator.Info.Chains.Chains;
+using System.Windows.Forms;
 
 namespace BSAutoGenerator.Info.Patterns
 {
@@ -32,6 +34,8 @@ namespace BSAutoGenerator.Info.Patterns
         static Random rnd = new Random();
 
         public int maxAvailablePatternLength = 0;
+
+        public int[] numWeightUsages = new int[5];
 
         public class PatternData
         {
@@ -53,8 +57,8 @@ namespace BSAutoGenerator.Info.Patterns
 
         public class PatternOption
         {
-            public int pattern_length;
             public List<PatternData> data = new List<PatternData>();
+            public List<Obstacle> obstacles = new List<Obstacle>();
             public List<PatternInputNote> previousRedNotes = new List<PatternInputNote>();
             public List<PatternInputNote> previousBlueNotes = new List<PatternInputNote>();
         }
@@ -131,6 +135,9 @@ namespace BSAutoGenerator.Info.Patterns
         public void InitPatterns()
         {
             maxAvailablePatternLength = 0;
+
+            for (int i = 0; i < 5; i++)
+                numWeightUsages[i] = 0;
         }
 
         public void LoadExampleData(DifficultyData dd)
@@ -138,6 +145,7 @@ namespace BSAutoGenerator.Info.Patterns
             try
             {
                 List<ColorNote> notes = dd.colorNotes;
+                List<Obstacle> obstacles = dd.obstacles;
 
                 ColorNote? previousRed = null;
                 ColorNote? previousBlue = null;
@@ -191,6 +199,7 @@ namespace BSAutoGenerator.Info.Patterns
                     {// Have a chain, record it...
                         PatternOption newPattern = new PatternOption();
                         List<PatternData> data = new List<PatternData>();
+                        List<Obstacle> walls = new List<Obstacle>();
 
                         for (int j = i - 1; j <= skipTo && j < notes.Count - 1; j += 2)
                         {
@@ -216,10 +225,23 @@ namespace BSAutoGenerator.Info.Patterns
                             data.Add(item2);
                         }
 
-                        newPattern.data = data;
+                        float startBeat = notes[i - 1].beat;
+                        float endBeat = notes[skipTo - 1].beat;
+                        float patternDuration = endBeat - startBeat;
 
-                        //newPattern.pattern_length = patternCounter;
-                        newPattern.pattern_length = data.Count;
+                        for (int j = 0; j < obstacles.Count; j++)
+                        {
+                            Obstacle obstacle = obstacles[j];
+
+                            if (obstacle.beat >= startBeat && obstacle.beat <= endBeat /*&& MathF.Min(obstacle.duration, patternDuration) >= 1.0f*/)
+                            {
+                                Obstacle item = new Obstacle(obstacle.beat - startBeat, obstacle.index, obstacle.layer, MathF.Min(obstacle.duration, patternDuration), obstacle.width, obstacle.height);
+                                walls.Add(item);
+                            }
+                        }
+
+                        newPattern.data = data;
+                        newPattern.obstacles = walls;
 
                         PatternOption? existingPattern = CheckIfPatternOptionExists(data);
 
@@ -303,9 +325,6 @@ namespace BSAutoGenerator.Info.Patterns
 
                             newPattern.data = data;
 
-                            //newPattern.pattern_length = patternCounter;
-                            newPattern.pattern_length = data.Count;
-
                             PatternOption? existingPattern = CheckIfPatternOptionExists(data);
 
                             if (existingPattern == null)
@@ -387,7 +406,7 @@ namespace BSAutoGenerator.Info.Patterns
 
             foreach (var cd in patternOptions)
             {
-                numOptions[cd.pattern_length]++;
+                numOptions[cd.data.Count]++;
             }
 
             for (int i = 1; i < 16; i++)
@@ -406,16 +425,16 @@ namespace BSAutoGenerator.Info.Patterns
                             {
                                 PatternOption cd = patternOptions[co];
 
-                                if (cd.pattern_length == origPatternLength)
+                                if (cd.data.Count == origPatternLength)
                                 {
-                                    //MessageBox.Show("Found same length for " + i + " from " + co + " (length " + cd.pattern_length + ")");
+                                    //MessageBox.Show("Found same length for " + i + " from " + co + " (length " + cd.data.Count + ")");
 
                                     /*if (CheckIfPatternOptionExists(cd.data, i) == null)
                                     {
                                         continue;
                                     }*/
 
-                                    //MessageBox.Show("Copying option for length " + i + " from " + co + " (length " + cd.pattern_length + ")");
+                                    //MessageBox.Show("Copying option for length " + i + " from " + co + " (length " + cd.data.Count + ")");
 
                                     PatternOption newPattern = new PatternOption();
                                     List<PatternData> data = new List<PatternData>();
@@ -435,8 +454,6 @@ namespace BSAutoGenerator.Info.Patterns
                                     }
 
                                     newPattern.data = data;
-
-                                    newPattern.pattern_length = data.Count;
 
                                     // Copy the previous note options lists here as well...
                                     newPattern.previousRedNotes = cd.previousRedNotes;
@@ -516,7 +533,7 @@ namespace BSAutoGenerator.Info.Patterns
 
             foreach (var cd in patternOptions)
             {
-                numOptions[cd.pattern_length]++;
+                numOptions[cd.data.Count]++;
             }
 
             int highest = 0;
@@ -622,6 +639,142 @@ namespace BSAutoGenerator.Info.Patterns
             return (diff > 0) ? diff : -diff;
         }
 
+        bool IsValidDirectionForSwing(int direction, bool leftSwinging, bool rightSwinging, bool downSwinging, bool upSwinging)
+        {
+            if (direction == CutDirection.ANY)
+            {
+                return true;
+            }
+
+            if (leftSwinging
+                && upSwinging
+                && (direction == CutDirection.UP_LEFT /*|| direction == CutDirection.UP || direction == CutDirection.LEFT*/))
+            {
+                return true;
+            }
+
+            if (rightSwinging
+                && upSwinging
+                && (direction == CutDirection.UP_RIGHT /*|| direction == CutDirection.UP || direction == CutDirection.RIGHT*/))
+            {
+                return true;
+            }
+
+            if (leftSwinging
+                && downSwinging
+                && (direction == CutDirection.DOWN_LEFT /*|| direction == CutDirection.DOWN || direction == CutDirection.LEFT*/))
+            {
+                return true;
+            }
+
+            if (rightSwinging
+                && downSwinging
+                && (direction == CutDirection.DOWN_RIGHT /*|| direction == CutDirection.DOWN || direction == CutDirection.RIGHT*/))
+            {
+                return true;
+            }
+
+            if (upSwinging
+                && (/*direction == CutDirection.UP_LEFT ||*/ direction == CutDirection.UP /*|| direction == CutDirection.UP_RIGHT*/))
+            {
+                return true;
+            }
+
+            if (downSwinging
+                && (/*direction == CutDirection.DOWN_LEFT ||*/ direction == CutDirection.DOWN /*|| direction == CutDirection.DOWN_RIGHT*/))
+            {
+                return true;
+            }
+
+            if (leftSwinging
+                && (/*direction == CutDirection.DOWN_LEFT ||*/ direction == CutDirection.LEFT /*|| direction == CutDirection.UP_LEFT*/))
+            {
+                return true;
+            }
+
+            if (rightSwinging
+                && (/*direction == CutDirection.DOWN_RIGHT ||*/ direction == CutDirection.RIGHT /*|| direction == CutDirection.UP_RIGHT*/))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        int IsValidStartFrom(PatternOption option, ColorNote redPreviousNote, ColorNote bluePreviousNote)
+        {
+            bool redGood = false;
+            bool blueGood = false;
+
+            PatternData? red = null;
+            PatternData? blue = null;
+
+            // Find the first of each color...
+            foreach (PatternData cd in option.data)
+            {
+                if (red == null && cd.color == ColorType.RED)
+                {
+                    red = cd;
+
+                    if ((red.line == redPreviousNote.line && red.layer == redPreviousNote.layer)
+                        || (red.line == bluePreviousNote.line && red.layer == bluePreviousNote.layer))
+                    {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
+                        return -1;
+                    }
+                }
+
+                if (blue == null && cd.color == ColorType.BLUE)
+                {
+                    blue = cd;
+
+                    if ((blue.line == redPreviousNote.line && blue.layer == redPreviousNote.layer)
+                        || (blue.line == bluePreviousNote.line && blue.layer == bluePreviousNote.layer))
+                    {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
+                        return -1;
+                    }
+                }
+
+                if (red != null && blue != null)
+                {// Done...
+                    break;
+                }
+            }
+
+            if (red != null)
+            {// Check directionality...
+                bool leftSwinging = red.line < redPreviousNote.line;
+                bool rightSwinging = red.line > redPreviousNote.line;
+                bool downSwinging = red.layer < redPreviousNote.layer;
+                bool upSwinging = red.layer > redPreviousNote.layer;
+                int direction = red.direction;
+
+                redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging);
+            }
+
+            if (blue != null)
+            {// Check directionality...
+                bool leftSwinging = blue.line < redPreviousNote.line;
+                bool rightSwinging = blue.line > redPreviousNote.line;
+                bool downSwinging = blue.layer < redPreviousNote.layer;
+                bool upSwinging = blue.layer > redPreviousNote.layer;
+                int direction = blue.direction;
+
+                blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging);
+            }
+
+            if (redGood && blue == null)
+            {// No blues in this pattern to worry about...
+                return 1;
+            }
+
+            if (blueGood && red == null)
+            {// No reds in this pattern to worry about...
+                return 1;
+            }
+
+            return (redGood && blueGood) ? 1 : 0;
+        }
+
         int NoteMatchesPatternStart(PatternOption option, ColorNote redPreviousNote, ColorNote bluePreviousNote)
         {
             bool redExists = false;
@@ -629,13 +782,30 @@ namespace BSAutoGenerator.Info.Patterns
             bool blueExists = false;
             bool blueSimilar = false;
 
+            int validStart = IsValidStartFrom(option, redPreviousNote, bluePreviousNote);
+
+            /*if (option.obstacles.Count <= 0)
+            {// testing walls...
+                return -1;
+            }*/
+
+            if (validStart == 1)
+            {// Looks ok procedurally...
+                return 4;
+            }
+            else if (validStart == -1)
+            {// Don't use this, starts on the same layer and line as a last note...
+                return 0;
+            }
+
+            // Has this transition been seen in the mapping data?
             foreach (var reds in option.previousRedNotes)
             {
                 if (redPreviousNote.line == reds.line
                     && redPreviousNote.layer == reds.layer
-                    //&& redPreviousNote.color == reds.color
+                    && redPreviousNote.color == reds.color
                     && redPreviousNote.direction == reds.direction
-                    && redPreviousNote.angle == reds.angle)
+                    /*&& redPreviousNote.angle == reds.angle*/)
                 {
                     redExists = true;
                     break;
@@ -646,9 +816,9 @@ namespace BSAutoGenerator.Info.Patterns
             {
                 if (bluePreviousNote.line == blues.line
                     && bluePreviousNote.layer == blues.layer
-                    //&& bluePreviousNote.color == blues.color
+                    && bluePreviousNote.color == blues.color
                     && bluePreviousNote.direction == blues.direction
-                    && bluePreviousNote.angle == blues.angle)
+                    /*&& bluePreviousNote.angle == blues.angle*/)
                 {
                     blueExists = true;
                     break;
@@ -668,7 +838,9 @@ namespace BSAutoGenerator.Info.Patterns
                         if (IntDiff(redPreviousNote.line, reds.line) <= 1
                             && IntDiff(redPreviousNote.layer, reds.layer) <= 1
                             //&& redPreviousNote.color == reds.color
-                            && IsSimilarDirection(redPreviousNote.direction, reds.direction)
+                            //&& redPreviousNote.direction == reds.direction
+                            //&& IsSimilarDirection(redPreviousNote.direction, reds.direction)
+                            && (redPreviousNote.color == reds.color || redPreviousNote.direction == reds.direction)
                             /*&& redPreviousNote.angle == reds.angle*/)
                         {
                             redSimilar = true;
@@ -688,7 +860,9 @@ namespace BSAutoGenerator.Info.Patterns
                         if (IntDiff(bluePreviousNote.line, blues.line) <= 1
                             && IntDiff(bluePreviousNote.layer, blues.layer) <= 1
                             //&& bluePreviousNote.color == blues.color
-                            && IsSimilarDirection(bluePreviousNote.direction, blues.direction)
+                            //&& bluePreviousNote.direction == blues.direction
+                            //&& IsSimilarDirection(bluePreviousNote.direction, blues.direction)
+                            && (bluePreviousNote.color == blues.color || bluePreviousNote.direction == blues.direction)
                             /*&& bluePreviousNote.angle == blues.angle*/)
                         {
                             blueSimilar = true;
@@ -761,6 +935,8 @@ namespace BSAutoGenerator.Info.Patterns
         {
             try
             {
+                int weightUsed = 4;
+
                 List<PatternOption> options = new List<PatternOption>();
                 List<PatternOption> secondaryOptions = new List<PatternOption>();
                 List<PatternOption> tertiaryOptions = new List<PatternOption>();
@@ -770,14 +946,7 @@ namespace BSAutoGenerator.Info.Patterns
                 {// If previous notes are specified, then try to find one with a matching start setup...
                     foreach (PatternOption chain in patternOptions)
                     {
-                        if (chain.data.Count == length)
-                        /*int diff = chain.data.Count - length;
-                        if (chain.data.Count == length
-                            || (diff >= 0 && diff <= 2 && length >= 4)
-                            || (diff >= 0 && diff <= 3 && length >= 6)
-                            || (diff >= 0 && diff <= 4 && length >= 8)
-                            || (diff >= 0 && diff <= 5 && length >= 10)
-                            || (diff >= 0 && diff <= 6 && length >= 12))*/
+                        if (chain.data.Count == length || chain.data.Count == maxAvailablePatternLength)
                         {
                             int chainStartWeight = NoteMatchesPatternStart(chain, redPreviousNote, bluePreviousNote);
 
@@ -799,6 +968,29 @@ namespace BSAutoGenerator.Info.Patterns
                             }
                         }
                     }
+
+                    if (options.Count <= 0)
+                    {// Got nuffin perfect, try shorter chains... Starting with the next highest count, and moving down until something good is found...
+                        int testLength = length;
+
+                        while (options.Count <= 0 && testLength > 0)
+                        {
+                            testLength--;
+
+                            foreach (PatternOption chain in patternOptions)
+                            {
+                                if (chain.data.Count == testLength)
+                                {
+                                    int chainStartWeight = NoteMatchesPatternStart(chain, redPreviousNote, bluePreviousNote);
+
+                                    if (chainStartWeight == 4)
+                                    {// Perfect match...
+                                        options.Add(chain);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (options.Count <= 0)
@@ -807,6 +999,7 @@ namespace BSAutoGenerator.Info.Patterns
                     {// We at least found a good secondary option or two, use those instead...
                         options = secondaryOptions;
                         //MessageBox.Show("using " + options.Count + " secondary options.");
+                        weightUsed = 3;
                     }
                     else
                     {
@@ -814,6 +1007,7 @@ namespace BSAutoGenerator.Info.Patterns
                         {// We at least found a good secondary option or two, use those instead...
                             options = tertiaryOptions;
                             //MessageBox.Show("using " + options.Count + " tertiary options.");
+                            weightUsed = 2;
                         }
                         else
                         {
@@ -821,11 +1015,13 @@ namespace BSAutoGenerator.Info.Patterns
                             {// We at least found a good secondary option or two, use those instead...
                                 options = fortiaryOptions;
                                 //MessageBox.Show("using " + options.Count + " fortiary options.");
+                                weightUsed = 1;
                             }
                             else
                             {
                                 // Fallback, select anything valid...
                                 //MessageBox.Show("found no good options, trying any option.");
+                                weightUsed = 0;
 
                                 foreach (PatternOption chain in patternOptions)
                                 {
@@ -853,6 +1049,7 @@ namespace BSAutoGenerator.Info.Patterns
 
                 int index = rnd.Next(options.Count);
                 //MessageBox.Show("wanted= " + length + " choices= " + options.Count + " selected= " + index);
+                numWeightUsages[weightUsed]++;
                 return options[index];
             }
             catch (Exception e)

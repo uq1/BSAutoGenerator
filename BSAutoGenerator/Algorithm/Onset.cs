@@ -21,12 +21,13 @@ namespace BSAutoGenerator.Algorithm
 
         static public AudioAnalysis audioAnalysis = new();
 
-        static public (List<ColorNote>, List<BurstSliderData>) GetMap(string audioPath, float bpm, float indistinguishableRange, bool limiter)
+        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) GetMap(string audioPath, float bpm, float indistinguishableRange, bool limiter)
         {
             // New list of notes and chain, will be filled via PatternCreator.cs
             List<ColorNote> notes = new List<ColorNote>();
             List<float> timings = new();
             List<BurstSliderData> chains = new();
+            List<Obstacle> obstacles = new();
 
             try
             {
@@ -122,7 +123,7 @@ namespace BSAutoGenerator.Algorithm
                     }
                 }
                 // Method to generate the map pattern
-                (notes, chains) = NoteGenerator.AutoMapper(timings, bpm, limiter);
+                (notes, chains, obstacles) = NoteGenerator.AutoMapper(timings, bpm, limiter);
             }
             catch (Exception e)
             {
@@ -133,7 +134,7 @@ namespace BSAutoGenerator.Algorithm
                 audioAnalysis.DisposeAudioAnalysis();
             }
 
-            return (notes, chains);
+            return (notes, chains, obstacles);
         }
 
         static void AnalyseSong(string filePath, int type, float indistinguishableRange = 0.01f)

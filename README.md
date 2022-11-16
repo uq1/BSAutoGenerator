@@ -51,7 +51,7 @@
 > **--obstacles**               - to enable obstacles on new auto-generations.
 > **--bpmdivider #**            - divide (or multiply if less than 1.0) the bpm by this value for adjusting beat detection.
 > **--irangemultiplier #**      - multiply indistinguishable range for beat detection by this. Also alters difficulty.
-> **--patterns "<folderName>"** - specify a custom folder within the patternData folder to load patterns from (styles).
+> **--patterns "\<folderName\>"** - specify a custom folder within the patternData folder to load patterns from (styles).
 
 ### Notes:
 > 1. If you specify or drag/drop a .dat file (instead of a ogg/mp3 file), it will only auto-generate lighting for your current map.

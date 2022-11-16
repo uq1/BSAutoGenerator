@@ -7,7 +7,7 @@
 **This generator is based more on casual and fun play (easy, normal and hard levels), not biased toward expert and expert+ levels, but it will do those just fine as well. It is focused on map flow. I want to feel like i'm dancing, not obtaining physical damage trying to hit impossible note combinations...**
 
 
-> _You provide your favorate example map dat files (put them in the patternData folder, however many you want. More will add more options but slow the generation a little). It calculates patterns based on those for new maps, using pure logic, not dumb AI guesswork (although a BeatSage command line is also available, should you want the chaotic maps, see below)._
+> _You (optionally, see below) provide your favorate example map dat files, however many or few you want. More will add more options but slow the generation a little). It calculates patterns based on those for new maps, using pure logic, not dumb AI guesswork (although a BeatSage command line is also available, should you want the chaotic maps, see below)._
 
 #### Download the latest release [HERE](https://github.com/uq1/BSAutoGenerator/releases/tag/release)
 

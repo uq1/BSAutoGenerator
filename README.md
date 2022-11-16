@@ -11,7 +11,7 @@
 
 #### Download the latest release [HERE](https://github.com/uq1/BSAutoGenerator/releases/tag/release)
 
-## [RealFlow v3 Example Song](https://skystudioapps.com/bs-viewer/?url=https://www2.aonode.com/get/ZmI1ZThlMzg5NGVmZTI5NGJlNjdhOGYwNDQyOWEzMjk%3D/U2tKU3BjYVNmaGpRRUE4c3RGOEFKeStLM2xrbERuc0pjdDVacmRuNE14YWRyU0svMlVwYTIvY3pTS3FtajhlMQ%3D%3D/1668599142/Reckoner%20-%20Above%20and%20Beyond%20Remix(RealFlow%20v3).zip)
+## [RealFlow v3 Example Song](https://skystudioapps.com/bs-viewer/?url=https://files.catbox.moe/vv2s0x.zip)
 
 
 #### Based on Lolighter 3.0.0 (WIP) by **Loloppe#6435** [HERE](https://github.com/Loloppe/Lolighter/)

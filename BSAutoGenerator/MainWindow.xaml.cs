@@ -65,8 +65,10 @@ namespace BSAutoGenerator
         internal List<List<string>> oldData = new();
 
         // Config values... Command line...
-        bool SILENCE = false;
-        bool USE_BEATSAGE = false;
+        public static bool SILENCE = false;
+        public static bool USE_BEATSAGE = false;
+        public static bool ENABLE_OBSTACLES = false;
+        public static string PATTERNS_FOLDER = "default";
 
         // Config values... Difficulty...
         /*int SPEED_EASY = 7;
@@ -80,6 +82,7 @@ namespace BSAutoGenerator
         int SPEED_EXPERT = 14;
         int SPEED_EXPERT_PLUS = 16;
 
+        float BPM_DIVIDER = 3.75f; // 2.0f;
         float IRANGE_MULTIPLIER = 0.55f;
 
         float IRANGE_EASY = 0.0010f;           // Easy
@@ -152,8 +155,16 @@ namespace BSAutoGenerator
             // UQ1: Command line file specification support...
             if (args.Length > 1)
             {
+                bool skip = false;
+
                 for (int i = 1; i < args.Length; i++)
                 {
+                    if (skip)
+                    {
+                        skip = false;
+                        continue;
+                    }
+
                     string arg = args[i];
 
                     if (arg.Contains("--silent", StringComparison.OrdinalIgnoreCase))
@@ -163,6 +174,37 @@ namespace BSAutoGenerator
                     else if (arg.Contains("--beatsage", StringComparison.OrdinalIgnoreCase))
                     {
                         USE_BEATSAGE = true;
+                    }
+                    else if (arg.Contains("--obstacles", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ENABLE_OBSTACLES = true;
+                    }
+                    else if (arg.Contains("--bpmdivider", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (args.Length > i + 1)
+                        {
+                            BPM_DIVIDER = float.Parse(args[i + 1]);
+                            skip = true; // we just read the next arg, skip it...
+                            continue;
+                        }
+                    }
+                    else if (arg.Contains("--irangemultiplier", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (args.Length > i + 1)
+                        {
+                            IRANGE_MULTIPLIER = float.Parse(args[i + 1]);
+                            skip = true; // we just read the next arg, skip it...
+                            continue;
+                        }
+                    }
+                    else if (arg.Contains("--patterns", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (args.Length > i + 1)
+                        {
+                            PATTERNS_FOLDER = args[i + 1];
+                            skip = true; // we just read the next arg, skip it...
+                            continue;
+                        }
                     }
                     else
                     {// Filenames...
@@ -539,8 +581,8 @@ namespace BSAutoGenerator
                 // Set author/editor info before saving...
                 if (!USE_BEATSAGE)
                 {
-                    infoData._levelAuthorName = "BSAutoGenerator (RealFlow v2)";
-                    infoData._customData._editors._lastEditedBy = "BSAutoGenerator (RealFlow v2)";
+                    infoData._levelAuthorName = "BSAutoGenerator (RealFlow v3)";
+                    infoData._customData._editors._lastEditedBy = "BSAutoGenerator (RealFlow v3)";
                 }
                 else
                 {
@@ -691,7 +733,7 @@ namespace BSAutoGenerator
                 limiter = false;
             }
 
-            difficultyData[DiffListBox.SelectedIndex].colorNotes = Invert.MakeInvert(difficultyData[DiffListBox.SelectedIndex].colorNotes, 0.25, limiter);
+            (difficultyData[DiffListBox.SelectedIndex].colorNotes, difficultyData[DiffListBox.SelectedIndex].obstacles) = Invert.MakeInvert(difficultyData[DiffListBox.SelectedIndex].colorNotes, difficultyData[DiffListBox.SelectedIndex].obstacles, 0.25, limiter);
             FillDataGrid(DiffListBox.SelectedIndex);
         }
 
@@ -1122,7 +1164,7 @@ namespace BSAutoGenerator
                 }
 #endif //_DISABLED_POPUPS_
 
-                bpm /= 2.0f; // RealFlow works at half rate for better flow...
+                bpm /= BPM_DIVIDER;
 #else //!_INTERNAL_BPM_DETECTOR_
 
                 try

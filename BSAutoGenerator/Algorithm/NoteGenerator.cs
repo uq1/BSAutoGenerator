@@ -1,5 +1,7 @@
 ﻿//#define _SCRIPTED_FLOW_
 //#define _DEBUG_PATTERN_USAGE_
+//#define _SCRIPTED_OBSTACLES_
+#define _PROCEDURAL_OBSTACLES_
 
 using BSAutoGenerator.Data.Structure;
 using BSAutoGenerator.Data.V2;
@@ -25,6 +27,8 @@ namespace BSAutoGenerator.Algorithm
     {
         static Patterns scripted_patterns = new Patterns();
         static Chains scripted_chains = new Chains();
+
+        static Random rnd = new Random();
 
         static int IntDiff(int a, int b)
         {
@@ -519,80 +523,85 @@ namespace BSAutoGenerator.Algorithm
                                 added.Add(note1);
                             }
 
-                            if (chain.obstacles.Count > 0)
-                            {// Add walls as well...
-                                List<Obstacle> addedObs = new();
+#if _SCRIPTED_OBSTACLES_
+if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
+                            {
+                                if (chain.obstacles.Count > 0)
+                                {// Add walls as well...
+                                    List<Obstacle> addedObs = new();
 
-                                for (int j = 0; j < chain.obstacles.Count; j++)
-                                {
-                                    Obstacle wall = chain.obstacles[j];
-
-                                    float startBeat = notes[i].beat + wall.beat + 0.1f;
-                                    float endBeat = 0;
-
-                                    foreach (ColorNote n in added)
+                                    for (int j = 0; j < chain.obstacles.Count; j++)
                                     {
-                                        if (n.beat < startBeat)
+                                        Obstacle wall = chain.obstacles[j];
+
+                                        float startBeat = notes[i].beat + wall.beat + 0.1f;
+                                        float endBeat = 0;
+
+                                        foreach (ColorNote n in added)
                                         {
-                                            continue;
-                                        }
-                                        
-                                        if (wall.height == 5)
-                                        {// Wall...
-                                            if (IntDiff(n.line, wall.index) <= wall.width)
-                                            {// Would be a note inside this wall at this point...
-                                                break;
+                                            if (n.beat < startBeat)
+                                            {
+                                                continue;
                                             }
-                                        }
-                                        else
-                                        {// Roof...
-                                            //MessageBox.Show("ROOF: layer: " + wall.layer + " width: " + wall.width + " height: " + wall.height);
-
-                                            if (n.layer >= wall.layer - 1)
-                                            {// Would be a note inside this wall at this point...
-                                                break;
-                                            }
-                                        }
                                         
-                                        endBeat = n.beat;
-                                    }
-
-                                    float patternDuration = endBeat - startBeat;
-
-                                    if (patternDuration >= 0.25f)
-                                    {
-                                        // Check overlaps first... Since I extended them to max duration above...
-                                        bool overlapped = false;
-
-                                        foreach (Obstacle oldWall in addedObs)
-                                        {
                                             if (wall.height == 5)
                                             {// Wall...
-                                                if (wall.index == oldWall.index)
-                                                {
-                                                    overlapped = true;
+                                                if (IntDiff(n.line, wall.index) <= wall.width)
+                                                {// Would be a note inside this wall at this point...
                                                     break;
                                                 }
                                             }
                                             else
-                                            {
-                                                if (wall.layer == oldWall.layer)
-                                                {
-                                                    overlapped = true;
+                                            {// Roof...
+                                                //MessageBox.Show("ROOF: layer: " + wall.layer + " width: " + wall.width + " height: " + wall.height);
+
+                                                if (n.layer >= wall.layer - 1)
+                                                {// Would be a note inside this wall at this point...
                                                     break;
                                                 }
                                             }
+                                        
+                                            endBeat = n.beat;
                                         }
 
-                                        if (!overlapped)
+                                        float patternDuration = endBeat - startBeat;
+
+                                        if (patternDuration >= 0.25f)
                                         {
-                                            Obstacle newWall = new Obstacle(startBeat, wall.index, wall.layer, /*MathF.Min(wall.duration, */patternDuration/*)*/, wall.width, wall.height);
-                                            obstacles.Add(newWall);
-                                            addedObs.Add(newWall);
+                                            // Check overlaps first... Since I extended them to max duration above...
+                                            bool overlapped = false;
+
+                                            foreach (Obstacle oldWall in addedObs)
+                                            {
+                                                if (wall.height == 5)
+                                                {// Wall...
+                                                    if (wall.index == oldWall.index)
+                                                    {
+                                                        overlapped = true;
+                                                        break;
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (wall.layer == oldWall.layer)
+                                                    {
+                                                        overlapped = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+
+                                            if (!overlapped)
+                                            {
+                                                Obstacle newWall = new Obstacle(startBeat, wall.index, wall.layer, /*MathF.Min(wall.duration, */patternDuration/*)*/, wall.width, wall.height);
+                                                obstacles.Add(newWall);
+                                                addedObs.Add(newWall);
+                                            }
                                         }
                                     }
                                 }
                             }
+#endif //_SCRIPTED_OBSTACLES_
                         }
                     }
                     else
@@ -726,15 +735,21 @@ namespace BSAutoGenerator.Algorithm
                                 upto++;
                             }
 
-                            /*if (chain.obstacles.Count > 0)
-                            {// Add walls as well...
-                                for (int j = 0; j < chain.obstacles.Count; j++)
-                                {
-                                    Obstacle wall = chain.obstacles[j];
-                                    Obstacle newWall = new Obstacle(startBeat + wall.beat, wall.index, wall.layer, MathF.Min(wall.duration, patternDuration), wall.width, wall.height);
-                                    obstacles.Add(newWall);
+#if _SCRIPTED_OBSTACLES_
+                            /*
+                            if (MainWindow.ENABLE_OBSTACLES)
+                            {
+                                if (chain.obstacles.Count > 0)
+                                {// Add walls as well...
+                                    for (int j = 0; j < chain.obstacles.Count; j++)
+                                    {
+                                        Obstacle wall = chain.obstacles[j];
+                                        Obstacle newWall = new Obstacle(startBeat + wall.beat, wall.index, wall.layer, MathF.Min(wall.duration, patternDuration), wall.width, wall.height);
+                                        obstacles.Add(newWall);
+                                    }
                                 }
                             }*/
+#endif //_SCRIPTED_OBSTACLES_
                         }
                     }
                     else
@@ -792,6 +807,113 @@ namespace BSAutoGenerator.Algorithm
                 System.Windows.MessageBox.Show(e.ToString());
             }
 #endif //__MY_OLD_FLOW__
+
+#if _PROCEDURAL_OBSTACLES_
+            try
+            {
+                if (MainWindow.ENABLE_OBSTACLES)
+                {
+                    float OBSTACLE_MIN_FREE_LANE_TIME = 2.0f;
+                    float OBSTACLE_BUFFER = 0.5f;
+                    float OBSTACLE_MIN_TIME = 1.0f;
+
+                    float[] laneLastUsed = new float[5] { 8, 8, 8, 8, 8 };
+
+                    //foreach (ColorNote note in notes)
+                    for (int i = 0; i < notes.Count; i++)
+                    {// Sigh, there is something very, very, wrong with the obstacles structure code, or the game code for it, lines are all wrong, beats are off.. IDK...
+                        ColorNote note = notes[i];
+                        ColorNote? nextNote = (i + 1 < notes.Count) ? notes[i + 1] : null;
+
+                        if (laneLastUsed[0] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME && laneLastUsed[1] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME
+                            && (nextNote == null || (nextNote.line != 0 && nextNote.line != 1))
+                            && rnd.Next(2) == 1)
+                        {// Lane 0+1+2 available for a wall...
+                            float start = MathF.Max(laneLastUsed[0], laneLastUsed[1]) + OBSTACLE_BUFFER;
+                            float end = note.beat - OBSTACLE_BUFFER;
+                            float duration = end - start;
+
+                            if (duration >= OBSTACLE_MIN_TIME)
+                            {
+                                Obstacle newWall = new Obstacle(start, -1, 0, duration, 2, 5);
+                                obstacles.Add(newWall);
+
+                                laneLastUsed[0] = note.beat;
+                                laneLastUsed[1] = note.beat;
+                                laneLastUsed[2] = note.beat;
+                            }
+                        }
+                        /*else if (laneLastUsed[0] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME
+                            && (nextNote == null || (nextNote.line != 0))
+                            && rnd.Next(2) == 1)
+                        {// Lane 0+1 available for a wall...
+                            float start = laneLastUsed[0] + OBSTACLE_BUFFER;
+                            float end = note.beat - OBSTACLE_BUFFER;
+                            float duration = end - start;
+
+                            if (duration >= OBSTACLE_MIN_TIME)
+                            {
+                                Obstacle newWall = new Obstacle(start, -1, 0, duration, 1, 5);
+                                obstacles.Add(newWall);
+
+                                laneLastUsed[0] = note.beat;
+                                laneLastUsed[1] = note.beat;
+                                laneLastUsed[2] = note.beat; // just to stop the player being trapped by walls on each side...
+                            }
+                        }
+                        else*/
+                        if (laneLastUsed[2] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME && laneLastUsed[3] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME
+                     && (nextNote == null || (nextNote.line != 2 && nextNote.line != 3))
+                     && rnd.Next(2) == 1)
+                        {// Lane 1+2+3 available for a wall...
+                            float start = MathF.Max(laneLastUsed[2], laneLastUsed[3]) + OBSTACLE_BUFFER;
+                            float end = note.beat - OBSTACLE_BUFFER;
+                            float duration = end - start;
+
+                            if (duration >= OBSTACLE_MIN_TIME)
+                            {
+                                Obstacle newWall = new Obstacle(start, 4, 0, duration, 2, 5);
+                                obstacles.Add(newWall);
+
+                                laneLastUsed[1] = note.beat;
+                                laneLastUsed[2] = note.beat;
+                                laneLastUsed[3] = note.beat;
+                            }
+                        }
+                        /*else if (laneLastUsed[3] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME
+                            && (nextNote == null || (nextNote.line != 3))
+                            && rnd.Next(2) == 1)
+                        {// Lane 2+3 available for a wall...
+                            float start = laneLastUsed[3] + OBSTACLE_BUFFER;
+                            float end = note.beat - OBSTACLE_BUFFER;
+                            float duration = end - start;
+
+                            if (duration >= OBSTACLE_MIN_TIME)
+                            {
+                                Obstacle newWall = new Obstacle(start, 4, 0, duration, 1, 5);
+                                obstacles.Add(newWall);
+
+                                laneLastUsed[1] = note.beat; // just to stop the player being trapped by walls on each side...
+                                laneLastUsed[2] = note.beat;
+                                laneLastUsed[3] = note.beat;
+                            }
+                        }*/
+
+                        // Add this new note's time to it's lane...
+                        if (note.line < 5)
+                        {
+                            laneLastUsed[note.line] = note.beat;
+                        }
+                    }
+
+                    //MessageBox.Show("Added obstabcles: " + obstacles.Count);
+                }
+            }
+            catch (Exception e)
+            {
+                System.Windows.MessageBox.Show(e.ToString());
+            }
+#endif //_PROCEDURAL_OBSTACLES_
 
 #if _DEBUG_PATTERN_USAGE_
             // For debugging...

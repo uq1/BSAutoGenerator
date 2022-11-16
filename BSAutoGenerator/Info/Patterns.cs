@@ -225,18 +225,21 @@ namespace BSAutoGenerator.Info.Patterns
                             data.Add(item2);
                         }
 
-                        float startBeat = notes[i - 1].beat;
-                        float endBeat = notes[skipTo - 1].beat;
-                        float patternDuration = endBeat - startBeat;
-
-                        for (int j = 0; j < obstacles.Count; j++)
+                        if (MainWindow.ENABLE_OBSTACLES)
                         {
-                            Obstacle obstacle = obstacles[j];
+                            float startBeat = notes[i - 1].beat;
+                            float endBeat = notes[skipTo - 1].beat;
+                            float patternDuration = endBeat - startBeat;
 
-                            if (obstacle.beat >= startBeat && obstacle.beat <= endBeat /*&& MathF.Min(obstacle.duration, patternDuration) >= 1.0f*/)
+                            for (int j = 0; j < obstacles.Count; j++)
                             {
-                                Obstacle item = new Obstacle(obstacle.beat - startBeat, obstacle.index, obstacle.layer, MathF.Min(obstacle.duration, patternDuration), obstacle.width, obstacle.height);
-                                walls.Add(item);
+                                Obstacle obstacle = obstacles[j];
+
+                                if (obstacle.beat >= startBeat && obstacle.beat <= endBeat /*&& MathF.Min(obstacle.duration, patternDuration) >= 1.0f*/)
+                                {
+                                    Obstacle item = new Obstacle(obstacle.beat - startBeat, obstacle.index, obstacle.layer, MathF.Min(obstacle.duration, patternDuration), obstacle.width, obstacle.height);
+                                    walls.Add(item);
+                                }
                             }
                         }
 
@@ -946,7 +949,7 @@ namespace BSAutoGenerator.Info.Patterns
                 {// If previous notes are specified, then try to find one with a matching start setup...
                     foreach (PatternOption chain in patternOptions)
                     {
-                        if (chain.data.Count == length || chain.data.Count == maxAvailablePatternLength)
+                        if (chain.data.Count >= length || chain.data.Count == maxAvailablePatternLength)
                         {
                             int chainStartWeight = NoteMatchesPatternStart(chain, redPreviousNote, bluePreviousNote);
 

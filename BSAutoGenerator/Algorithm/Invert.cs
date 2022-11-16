@@ -1,4 +1,7 @@
-﻿using BSAutoGenerator.Data.Structure;
+﻿//#define _FULL_INVERSION_ // I only want to invert lines, drections, and colors instead.
+
+using BSAutoGenerator.Data.Structure;
+using BSAutoGenerator.Data.V2;
 using System.Collections.Generic;
 using static BSAutoGenerator.Info.Enumerator;
 
@@ -6,8 +9,9 @@ namespace BSAutoGenerator.Algorithm
 {
     class Invert
     {
-        static public List<ColorNote> MakeInvert(List<ColorNote> noteTemp, double Limiter, bool IsLimited)
+        static public (List<ColorNote>, List<Obstacle>) MakeInvert(List<ColorNote> noteTemp, List<Obstacle> obstacles, double Limiter, bool IsLimited)
         {
+#if _FULL_INVERSION_
             // Current note
             ColorNote n;
 
@@ -79,8 +83,63 @@ namespace BSAutoGenerator.Algorithm
                         break;
                 }
             }
+            return (noteTemp, obstacles);
 
-            return noteTemp;
+#else //!_FULL_INVERSION_
+            foreach (ColorNote note in noteTemp)
+            {
+                if (note.color == ColorType.RED)
+                {
+                    note.color = ColorType.BLUE;
+                }
+                else if (note.color == ColorType.BLUE)
+                {
+                    note.color = ColorType.RED;
+                }
+
+                note.line = 4 - note.line;
+                note.direction = GetInvertedDirection(note.direction);
+            }
+
+            foreach (Obstacle obstacle in obstacles)
+            {
+                if (obstacle.height == 5)
+                {// Wall...
+                    obstacle.index = 4 - obstacle.index;
+                }
+                else
+                {// Roof, leave as is...
+
+                }
+            }
+
+            return (noteTemp, obstacles);
+#endif //_FULL_INVERSION_
+        }
+
+        static public int GetInvertedDirection(int direction)
+        {
+            switch (direction)
+            {
+                case CutDirection.UP:
+                    return CutDirection.DOWN;
+                case CutDirection.DOWN:
+                    return CutDirection.UP;
+                case CutDirection.LEFT:
+                    return CutDirection.RIGHT;
+                case CutDirection.RIGHT:
+                    return CutDirection.LEFT;
+                case CutDirection.UP_LEFT:
+                    return CutDirection.DOWN_RIGHT;
+                case CutDirection.UP_RIGHT:
+                    return CutDirection.DOWN_LEFT;
+                case CutDirection.DOWN_LEFT:
+                    return CutDirection.UP_RIGHT;
+                case CutDirection.DOWN_RIGHT:
+                    return CutDirection.UP_LEFT;
+            }
+
+            return CutDirection.ANY;
         }
     }
 }

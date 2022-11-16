@@ -178,7 +178,7 @@ namespace BSAutoGenerator.Info.Chains
 
             string _path = new FileInfo(Assembly.GetEntryAssembly().Location).Directory.ToString();
 
-            var d = new DirectoryInfo(_path + "\\patternData\\");
+            var d = new DirectoryInfo(_path + "\\patternData\\" + MainWindow.PATTERNS_FOLDER + "\\");
 
             //MessageBox.Show("path= " + d);
 
@@ -395,18 +395,21 @@ namespace BSAutoGenerator.Info.Chains
                                         data.Add(item);
                                     }
 
-                                    float startBeat = notes[i - 1].beat;
-                                    float endBeat = notes[skipTo - 1].beat;
-                                    float patternDuration = endBeat - startBeat;
-
-                                    for (int j = 0; j < obstacles.Count; j++)
+                                    if (MainWindow.ENABLE_OBSTACLES)
                                     {
-                                        Obstacle obstacle = obstacles[j];
+                                        float startBeat = notes[i - 1].beat;
+                                        float endBeat = notes[skipTo - 1].beat;
+                                        float patternDuration = endBeat - startBeat;
 
-                                        if (obstacle.beat >= startBeat && obstacle.beat <= endBeat)
+                                        for (int j = 0; j < obstacles.Count; j++)
                                         {
-                                            Obstacle item = new Obstacle(obstacle.beat - startBeat, obstacle.index, obstacle.layer, MathF.Min(obstacle.duration, patternDuration), obstacle.width, obstacle.height);
-                                            walls.Add(item);
+                                            Obstacle obstacle = obstacles[j];
+
+                                            if (obstacle.beat >= startBeat && obstacle.beat <= endBeat)
+                                            {
+                                                Obstacle item = new Obstacle(obstacle.beat - startBeat, obstacle.index, obstacle.layer, MathF.Min(obstacle.duration, patternDuration), obstacle.width, obstacle.height);
+                                                walls.Add(item);
+                                            }
                                         }
                                     }
 
@@ -1189,7 +1192,7 @@ namespace BSAutoGenerator.Info.Chains
                 {// If previous notes are specified, then try to find one with a matching start setup...
                     foreach (ChainOption chain in chainOptions)
                     {
-                        if (chain.data.Count == length || chain.data.Count == maxAvailableChainLength)
+                        if (chain.data.Count >= length || chain.data.Count == maxAvailableChainLength)
                         {
                             int chainStartWeight = NoteMatchesChainStart(chain, redPreviousNote, bluePreviousNote);
 

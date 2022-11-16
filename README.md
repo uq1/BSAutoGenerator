@@ -11,6 +11,9 @@
 
 #### Download the latest release [HERE](https://github.com/uq1/BSAutoGenerator/releases/tag/release)
 
+## [RealFlow v3 Example Song](https://skystudioapps.com/bs-viewer/?url=https://www2.aonode.com/get/ZmI1ZThlMzg5NGVmZTI5NGJlNjdhOGYwNDQyOWEzMjk%3D/U2tKU3BjYVNmaGpRRUE4c3RGOEFKeStLM2xrbERuc0pjdDVacmRuNE14YWRyU0svMlVwYTIvY3pTS3FtajhlMQ%3D%3D/1668599142/Reckoner%20-%20Above%20and%20Beyond%20Remix(RealFlow%20v3).zip)
+
+
 #### Based on Lolighter 3.0.0 (WIP) by **Loloppe#6435** [HERE](https://github.com/Loloppe/Lolighter/)
 
 
@@ -43,12 +46,13 @@
 > BSAutoGenerator <optional_command_line_options_below> "c:\soundpath\soundfile.ogg"
 
 ### Custom Command Line Options:
-> **--silent**    - run in a more silent mode, it is pretty silent though anyway.
-> **--beatsage**  - use beat sage to generate the maps, should you ever want to, takes longer and they are worse.
+> **--silent**                  - run in a more silent mode, it is pretty silent though anyway.
+> **--beatsage**                - use beat sage to generate the maps, should you ever want to, takes longer and they are worse.
+> **--obstacles**               - to enable obstacles on new auto-generations.
+> **--bpmdivider #**            - divide (or multiply if less than 1.0) the bpm by this value for adjusting beat detection.
+> **--irangemultiplier #**      - multiply indistinguishable range for beat detection by this. Also alters difficulty.
+> **--patterns "<folderName>"** - specify a custom folder within the patternData folder to load patterns from (styles).
 
 ### Notes:
 > 1. If you specify or drag/drop a .dat file (instead of a ogg/mp3 file), it will only auto-generate lighting for your current map.
 > 2. You can also use the UI exactly the same as the original LoLighter, I added the command line and drag/drop for speed, and for automating.
-
-
-## [Example Song](https://tinyurl.com/nhc96snz)

@@ -68,6 +68,7 @@ namespace BSAutoGenerator
         public static bool SILENCE = false;
         public static bool USE_BEATSAGE = false;
         public static bool ENABLE_OBSTACLES = false;
+        public static bool ENABLE_DOT_TRANSITIONS = false;
         public static string PATTERNS_FOLDER = "default";
 
         // Config values... Difficulty...
@@ -82,8 +83,10 @@ namespace BSAutoGenerator
         int SPEED_EXPERT = 14;
         int SPEED_EXPERT_PLUS = 16;
 
-        float BPM_DIVIDER = 3.75f; // 2.0f;
-        float IRANGE_MULTIPLIER = 0.55f;
+        //float BPM_DIVIDER = 2.0f;
+        float BPM_DIVIDER = 3.75f;
+        //float IRANGE_MULTIPLIER = 0.55f;
+        float IRANGE_MULTIPLIER = 0.33333f;
 
         float IRANGE_EASY = 0.0010f;           // Easy
         float IRANGE_STANDARD = 0.0015f;       // Standard
@@ -179,7 +182,11 @@ namespace BSAutoGenerator
                     {
                         ENABLE_OBSTACLES = true;
                     }
-                    else if (arg.Contains("--bpmdivider", StringComparison.OrdinalIgnoreCase))
+                    else if (arg.Contains("--dot-transitions", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ENABLE_DOT_TRANSITIONS = true;
+                    }
+                    else if (arg.Contains("--bpm", StringComparison.OrdinalIgnoreCase))
                     {
                         if (args.Length > i + 1)
                         {
@@ -1164,7 +1171,7 @@ namespace BSAutoGenerator
                 }
 #endif //_DISABLED_POPUPS_
 
-                bpm /= BPM_DIVIDER;
+                //bpm /= BPM_DIVIDER;
 #else //!_INTERNAL_BPM_DETECTOR_
 
                 try
@@ -1400,7 +1407,26 @@ namespace BSAutoGenerator
                     burstSliders = new();
                     obstacles = new();
 
-                    (colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], limiter);
+                    //(colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], limiter);
+                    (colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm / BPM_DIVIDER, indistinguishableRange[i], limiter);
+
+                    if (BPM_DIVIDER != 1.0f)
+                    {// If using a custom divider, convert the note times back to the real BPM, as beatsaber quest seems to hate low BPM songs.
+                        foreach (ColorNote n in colorNotes)
+                        {
+                            n.beat *= BPM_DIVIDER;
+                        }
+
+                        foreach (BurstSliderData n in burstSliders)
+                        {
+                            n.beat *= BPM_DIVIDER;
+                        }
+
+                        foreach (Obstacle n in obstacles)
+                        {
+                            n.beat *= BPM_DIVIDER;
+                        }
+                    }
 
                     if (colorNotes.Count > 0)
                     {

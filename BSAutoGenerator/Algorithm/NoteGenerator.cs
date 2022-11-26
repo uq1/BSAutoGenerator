@@ -404,6 +404,9 @@ namespace BSAutoGenerator.Algorithm
                         previous_blue = notes[i];
                     }
                 }
+
+                // Make sure the notes list is sorted by beat...
+                notes.Sort((a, b) => a.beat.CompareTo(b.beat));
             }
             catch (Exception e)
             {
@@ -499,6 +502,9 @@ namespace BSAutoGenerator.Algorithm
                             //MessageBox.Show("wanted= " + patternCounter + " returned= " + chain.data.Count);
                             List<ColorNote> added = new List<ColorNote>();
 
+                            bool firstRed = true;
+                            bool firstBlue = true;
+
                             //for (int j = i - 1; j <= skipTo && j < notes.Count - 1; j += 2)
                             for (int j = 0; j < patternCounter; j++)
                             {
@@ -519,6 +525,21 @@ namespace BSAutoGenerator.Algorithm
                                 note1.color = cd.color;
                                 note1.direction = cd.direction;
                                 note1.angle = cd.angle;
+
+                                if (MainWindow.ENABLE_DOT_TRANSITIONS)
+                                {
+                                    if (firstRed && note1.color == ColorType.RED)
+                                    {
+                                        note1.direction = CutDirection.ANY;
+                                        firstRed = false;
+                                    }
+
+                                    if (firstBlue && note1.color == ColorType.BLUE)
+                                    {
+                                        note1.direction = CutDirection.ANY;
+                                        firstBlue = false;
+                                    }
+                                }
 
                                 added.Add(note1);
                             }
@@ -623,6 +644,12 @@ if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
                                 note.color = cd.color;
                                 note.direction = cd.direction;
                                 note.angle = cd.angle;
+
+                                if (MainWindow.ENABLE_DOT_TRANSITIONS)
+                                {
+                                    note.direction = CutDirection.ANY;
+                                }
+
                                 skipTo = 0;
                             }
                         }
@@ -732,6 +759,15 @@ if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
                                 note2.direction = cd.direction2;
                                 note2.angle = cd.angle2;
 
+                                /*
+                                // Hmm, not on doubles...
+                                if (MainWindow.ENABLE_DOT_TRANSITIONS && upto == 0)
+                                {
+                                    note1.direction = CutDirection.ANY;
+                                    note2.direction = CutDirection.ANY;
+                                }
+                                */
+
                                 upto++;
                             }
 
@@ -785,6 +821,15 @@ if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
                                     note2.color = cd.color2;
                                     note2.direction = cd.direction2;
                                     note2.angle = cd.angle2;
+
+                                    /*
+                                    // Hmm, not on doubles...
+                                    if (MainWindow.ENABLE_DOT_TRANSITIONS && upto == 0)
+                                    {
+                                        note1.direction = CutDirection.ANY;
+                                        note2.direction = CutDirection.ANY;
+                                    }
+                                    */
 
                                     upto++;
                                 }
@@ -862,7 +907,7 @@ if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
                             }
                         }
                         else*/
-                        if (laneLastUsed[2] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME && laneLastUsed[3] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME
+                                    if (laneLastUsed[2] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME && laneLastUsed[3] < note.beat - OBSTACLE_MIN_FREE_LANE_TIME
                      && (nextNote == null || (nextNote.line != 2 && nextNote.line != 3))
                      && rnd.Next(2) == 1)
                         {// Lane 1+2+3 available for a wall...
@@ -914,6 +959,9 @@ if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
                 System.Windows.MessageBox.Show(e.ToString());
             }
 #endif //_PROCEDURAL_OBSTACLES_
+
+            // Make sure the obstacles list is sorted by beat...
+            obstacles.Sort((a, b) => a.beat.CompareTo(b.beat));
 
 #if _DEBUG_PATTERN_USAGE_
             // For debugging...

@@ -130,13 +130,17 @@ namespace BSAutoGenerator.Algorithm
                 case CutDirection.RIGHT:
                     return CutDirection.LEFT;
                 case CutDirection.UP_LEFT:
-                    return CutDirection.DOWN_RIGHT;
-                case CutDirection.UP_RIGHT:
-                    return CutDirection.DOWN_LEFT;
-                case CutDirection.DOWN_LEFT:
+                    //return CutDirection.DOWN_RIGHT;
                     return CutDirection.UP_RIGHT;
-                case CutDirection.DOWN_RIGHT:
+                case CutDirection.UP_RIGHT:
+                    //return CutDirection.DOWN_LEFT;
                     return CutDirection.UP_LEFT;
+                case CutDirection.DOWN_LEFT:
+                    //return CutDirection.UP_RIGHT;
+                    return CutDirection.DOWN_RIGHT;
+                case CutDirection.DOWN_RIGHT:
+                    //return CutDirection.UP_LEFT;
+                    return CutDirection.DOWN_LEFT;
             }
 
             return CutDirection.ANY;

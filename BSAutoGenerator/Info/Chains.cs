@@ -1,4 +1,6 @@
-﻿using BSAutoGenerator.Algorithm;
+﻿//#define _CHECK_NOTE_FLOWS_
+
+using BSAutoGenerator.Algorithm;
 using BSAutoGenerator.Data;
 using BSAutoGenerator.Data.Structure;
 using BSAutoGenerator.Data.V2;
@@ -101,6 +103,49 @@ namespace BSAutoGenerator.Info.Chains
             return false;
         }
 
+        bool CheckIfChainOptionFlows(List<ChainData> newChain)
+        {
+#if _CHECK_NOTE_FLOWS_
+            ColorNote? previousRed = null;
+            ColorNote? previousBlue = null;
+
+            for (int j = 0; j < newChain.Count; j++)
+            {
+                ChainData data = newChain[j];
+
+                ColorNote note1 = new ColorNote(0, data.color1, data.line1, data.layer1, data.direction1);
+                ColorNote note2 = new ColorNote(0, data.color2, data.line2, data.layer2, data.direction2);
+
+                int valid1 = IsNoteFlowValid(note1, previousRed, previousBlue);
+                int valid2 = IsNoteFlowValid(note2, previousRed, previousBlue);
+
+                if (valid1 < 1 || valid2 < 1)
+                {
+                    return false;
+                }
+
+                if (note1.color == ColorType.RED)
+                {
+                    previousRed = note1;
+                }
+                else if (note1.color == ColorType.BLUE)
+                {
+                    previousBlue = note1;
+                }
+
+                if (note2.color == ColorType.RED)
+                {
+                    previousRed = note2;
+                }
+                else if (note2.color == ColorType.BLUE)
+                {
+                    previousBlue = note2;
+                }
+            }
+#endif //_CHECK_NOTE_FLOWS_
+
+            return true;
+        }
 
         ChainOption? CheckIfChainOptionExists(List<ChainData> newChain, int checkLength = -1)
         {
@@ -416,6 +461,13 @@ namespace BSAutoGenerator.Info.Chains
                                     newChain.data = data;
                                     newChain.obstacles = walls;
 
+                                    bool checkChain = CheckIfChainOptionFlows(data);
+
+                                    if (!checkChain)
+                                    {// This chain in the original file has some flow issues, ignore it...
+                                        continue;
+                                    }
+
                                     ChainOption? existingChain = CheckIfChainOptionExists(data);
 
                                     if (existingChain == null)
@@ -503,6 +555,13 @@ namespace BSAutoGenerator.Info.Chains
                                         data.Add(item);
 
                                         newChain.data = data;
+
+                                        bool checkChain = CheckIfChainOptionFlows(data);
+
+                                        if (!checkChain)
+                                        {// This chain in the original file has some flow issues, ignore it...
+                                            continue;
+                                        }
 
                                         ChainOption? existingChain = CheckIfChainOptionExists(data);
 
@@ -662,6 +721,55 @@ namespace BSAutoGenerator.Info.Chains
                 }
             }
 
+            // Copy the ends of longer chains into shorter ones, skipping the starts...
+            for (int i = 16; i > 0; i--)
+            {
+                for (int j = i - 1; j > 0; j--)
+                {
+                    for (int co = 0; co < chainOptions.Count; co++)
+                    {
+                        var cno = chainOptions[co];
+
+                        if (cno.data.Count == i)
+                        {// Found a longer chain, copy the end of it to the shorter chain...
+                            ChainOption newChain = new ChainOption();
+                            List<ChainData> data = new List<ChainData>();
+
+                            for (int c = i-j; c < i; c++)
+                            {
+                                ChainData old = cno.data[c];
+
+                                ChainData item = new ChainData();
+                                item.line1 = old.line1;
+                                item.layer1 = old.layer1;
+                                item.color1 = old.color1;
+                                item.direction1 = old.direction1;
+                                item.angle1 = old.angle1;
+
+                                item.line2 = old.line2;
+                                item.layer2 = old.layer2;
+                                item.color2 = old.color2;
+                                item.direction2 = old.direction2;
+                                item.angle2 = old.angle2;
+
+                                data.Add(item);
+                            }
+
+                            newChain.data = data;
+
+                            // Copy the previous note options lists here as well...
+                            newChain.previousRedNotes = new List<InputNote>();//cno.previousRedNotes;
+                            newChain.previousBlueNotes = new List<InputNote>();//cno.previousBlueNotes;
+
+                            if (CheckIfChainOptionExists(data) == null)
+                            {
+                                chainOptions.Add(newChain);
+                            }
+                        }
+                    }
+                }
+            }
+
             // Add known previous red and blue saber start positions to anything starting in the same place...
             foreach (ChainOption option1 in chainOptions)
             {
@@ -672,7 +780,6 @@ namespace BSAutoGenerator.Info.Chains
                         continue;
                     }
 
-                    //if (option1.data[0].Equals(option2.data[0]))
                     if (option1.data[0].line1 == option2.data[0].line1
                         && option1.data[0].layer1 == option2.data[0].layer1
                         //&& option1.data[0].color1 == option2.data[0].color1
@@ -836,66 +943,483 @@ namespace BSAutoGenerator.Info.Chains
             return (diff > 0) ? diff : -diff;
         }
 
-        bool IsValidDirectionForSwing(int direction, bool leftSwinging, bool rightSwinging, bool downSwinging, bool upSwinging)
+        bool IsValidDirectionForSwing(int direction, bool leftSwinging, bool rightSwinging, bool downSwinging, bool upSwinging, int previousDirection)
         {
             if (direction == CutDirection.ANY)
             {
                 return true;
             }
 
-            if (leftSwinging
-                && upSwinging
-                && (direction == CutDirection.UP_LEFT /*|| direction == CutDirection.UP || direction == CutDirection.LEFT*/))
+            if (direction == previousDirection)
+            {
+                return false;
+            }
+
+            if ((leftSwinging || upSwinging)
+                && (direction == CutDirection.UP_LEFT || direction == CutDirection.UP || direction == CutDirection.LEFT))
             {
                 return true;
             }
 
-            if (rightSwinging
-                && upSwinging
-                && (direction == CutDirection.UP_RIGHT /*|| direction == CutDirection.UP || direction == CutDirection.RIGHT*/))
+            if ((rightSwinging || upSwinging)
+                && (direction == CutDirection.UP_RIGHT || direction == CutDirection.UP || direction == CutDirection.RIGHT))
             {
                 return true;
             }
 
-            if (leftSwinging
-                && downSwinging
-                && (direction == CutDirection.DOWN_LEFT /*|| direction == CutDirection.DOWN || direction == CutDirection.LEFT*/))
+            if ((leftSwinging || downSwinging)
+                && (direction == CutDirection.DOWN_LEFT || direction == CutDirection.DOWN || direction == CutDirection.LEFT))
             {
                 return true;
             }
 
-            if (rightSwinging
-                && downSwinging
-                && (direction == CutDirection.DOWN_RIGHT /*|| direction == CutDirection.DOWN || direction == CutDirection.RIGHT*/))
+            if ((rightSwinging || downSwinging)
+                && (direction == CutDirection.DOWN_RIGHT || direction == CutDirection.DOWN || direction == CutDirection.RIGHT))
             {
                 return true;
             }
 
             if (upSwinging
-                && (/*direction == CutDirection.UP_LEFT ||*/ direction == CutDirection.UP /*|| direction == CutDirection.UP_RIGHT*/))
+                && (direction == CutDirection.UP || direction == CutDirection.UP_RIGHT || direction == CutDirection.UP_LEFT))
             {
                 return true;
             }
 
             if (downSwinging
-                && (/*direction == CutDirection.DOWN_LEFT ||*/ direction == CutDirection.DOWN /*|| direction == CutDirection.DOWN_RIGHT*/))
+                && (direction == CutDirection.DOWN || direction == CutDirection.DOWN_RIGHT || direction == CutDirection.DOWN_LEFT))
             {
                 return true;
             }
 
             if (leftSwinging
-                && (/*direction == CutDirection.DOWN_LEFT ||*/ direction == CutDirection.LEFT /*|| direction == CutDirection.UP_LEFT*/))
+                && (direction == CutDirection.LEFT || direction == CutDirection.UP_LEFT || direction == CutDirection.DOWN_LEFT))
             {
                 return true;
             }
 
             if (rightSwinging
-                && (/*direction == CutDirection.DOWN_RIGHT ||*/ direction == CutDirection.RIGHT /*|| direction == CutDirection.UP_RIGHT*/))
+                && (direction == CutDirection.RIGHT || direction == CutDirection.UP_RIGHT || direction == CutDirection.DOWN_RIGHT))
             {
                 return true;
             }
 
             return false;
+        }
+
+        public void SwingFlowCorrection(ColorNote note, ColorNote? redPreviousNote, ColorNote? bluePreviousNote, ColorNote? doublePartner)
+        {
+            if (note.color == ColorType.RED)
+            {// Check directionality...
+                if (redPreviousNote == null)
+                {// Transitions are checked elsewhere...
+                    return;
+                }
+
+                int handPositionLine = redPreviousNote.line;
+                int handPositionLayer = redPreviousNote.layer;
+
+                // Predict hand position from previous note's direction...
+                switch (redPreviousNote.direction)
+                {
+                    case CutDirection.UP:
+                        handPositionLayer++;
+                        break;
+                    case CutDirection.DOWN:
+                        handPositionLayer--;
+                        break;
+                    case CutDirection.LEFT:
+                        handPositionLine--;
+                        break;
+                    case CutDirection.RIGHT:
+                        handPositionLine++;
+                        break;
+                    case CutDirection.UP_LEFT:
+                        handPositionLayer++;
+                        handPositionLine--;
+                        break;
+                    case CutDirection.UP_RIGHT:
+                        handPositionLayer++;
+                        handPositionLine++;
+                        break;
+                    case CutDirection.DOWN_LEFT:
+                        handPositionLayer--;
+                        handPositionLine--;
+                        break;
+                    case CutDirection.DOWN_RIGHT:
+                        handPositionLayer--;
+                        handPositionLine++;
+                        break;
+                    case CutDirection.ANY:
+                    default:
+                        break;
+                }
+
+                bool leftSwinging = note.line < handPositionLine;
+                bool rightSwinging = note.line > handPositionLine;
+                bool downSwinging = note.layer < handPositionLayer;
+                bool upSwinging = note.layer > handPositionLayer;
+                int direction = note.direction;
+
+                bool redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, redPreviousNote.direction);
+
+                if (redGood)
+                {
+                    return;
+                }
+                else
+                {// Fix...
+                    if (upSwinging)
+                    {
+                        if (leftSwinging)
+                        {
+                            if (doublePartner != null && doublePartner.direction == CutDirection.UP)
+                            {
+                                note.direction = CutDirection.UP;
+                            }
+                            else if (doublePartner != null && doublePartner.direction == CutDirection.LEFT)
+                            {
+                                note.direction = CutDirection.LEFT;
+                            }
+                            else
+                            {
+                                note.direction = CutDirection.UP_LEFT;
+                            }
+                        }
+                        else if (rightSwinging)
+                        {
+                            if (doublePartner != null && doublePartner.direction == CutDirection.UP)
+                            {
+                                note.direction = CutDirection.UP;
+                            }
+                            else if (doublePartner != null && doublePartner.direction == CutDirection.RIGHT)
+                            {
+                                note.direction = CutDirection.RIGHT;
+                            }
+                            else
+                            {
+                                note.direction = CutDirection.UP_RIGHT;
+                            }
+                        }
+                        else
+                        {
+                            note.direction = CutDirection.UP;
+                        }
+                    }
+                    else if (downSwinging)
+                    {
+                        if (leftSwinging)
+                        {
+                            if (doublePartner != null && doublePartner.direction == CutDirection.DOWN)
+                            {
+                                note.direction = CutDirection.DOWN;
+                            }
+                            else if (doublePartner != null && doublePartner.direction == CutDirection.LEFT)
+                            {
+                                note.direction = CutDirection.LEFT;
+                            }
+                            else
+                            {
+                                note.direction = CutDirection.DOWN_LEFT;
+                            }
+                        }
+                        else if (rightSwinging)
+                        {
+                            if (doublePartner != null && doublePartner.direction == CutDirection.DOWN)
+                            {
+                                note.direction = CutDirection.DOWN;
+                            }
+                            else if (doublePartner != null && doublePartner.direction == CutDirection.RIGHT)
+                            {
+                                note.direction = CutDirection.RIGHT;
+                            }
+                            else
+                            {
+                                note.direction = CutDirection.DOWN_RIGHT;
+                            }
+                        }
+                        else
+                        {
+                            note.direction = CutDirection.DOWN;
+                        }
+                    }
+                    else
+                    {
+                        if (leftSwinging)
+                        {
+                            note.direction = CutDirection.LEFT;
+                        }
+                        else if (rightSwinging)
+                        {
+                            note.direction = CutDirection.RIGHT;
+                        }
+                    }
+                }
+            }
+
+            if (note.color == ColorType.BLUE)
+            {// Check directionality...
+                if (bluePreviousNote == null)
+                {// Transitions are checked elsewhere...
+                    return;
+                }
+
+                int handPositionLine = bluePreviousNote.line;
+                int handPositionLayer = bluePreviousNote.layer;
+
+                // Predict hand position from previous note's direction...
+                switch (bluePreviousNote.direction)
+                {
+                    case CutDirection.UP:
+                        handPositionLayer++;
+                        break;
+                    case CutDirection.DOWN:
+                        handPositionLayer--;
+                        break;
+                    case CutDirection.LEFT:
+                        handPositionLine--;
+                        break;
+                    case CutDirection.RIGHT:
+                        handPositionLine++;
+                        break;
+                    case CutDirection.UP_LEFT:
+                        handPositionLayer++;
+                        handPositionLine--;
+                        break;
+                    case CutDirection.UP_RIGHT:
+                        handPositionLayer++;
+                        handPositionLine++;
+                        break;
+                    case CutDirection.DOWN_LEFT:
+                        handPositionLayer--;
+                        handPositionLine--;
+                        break;
+                    case CutDirection.DOWN_RIGHT:
+                        handPositionLayer--;
+                        handPositionLine++;
+                        break;
+                    case CutDirection.ANY:
+                    default:
+                        break;
+                }
+
+                bool leftSwinging = note.line < handPositionLine;
+                bool rightSwinging = note.line > handPositionLine;
+                bool downSwinging = note.layer < handPositionLayer;
+                bool upSwinging = note.layer > handPositionLayer;
+                int direction = note.direction;
+
+                bool blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, bluePreviousNote.direction);
+                
+                if (blueGood)
+                {
+                    return;
+                }
+                else
+                {// Fix...
+                    if (upSwinging)
+                    {
+                        if (leftSwinging)
+                        {
+                            if (doublePartner != null && doublePartner.direction == CutDirection.UP)
+                            {
+                                note.direction = CutDirection.UP;
+                            }
+                            else if (doublePartner != null && doublePartner.direction == CutDirection.LEFT)
+                            {
+                                note.direction = CutDirection.LEFT;
+                            }
+                            else
+                            {
+                                note.direction = CutDirection.UP_LEFT;
+                            }
+                        }
+                        else if (rightSwinging)
+                        {
+                            if (doublePartner != null && doublePartner.direction == CutDirection.UP)
+                            {
+                                note.direction = CutDirection.UP;
+                            }
+                            else if (doublePartner != null && doublePartner.direction == CutDirection.RIGHT)
+                            {
+                                note.direction = CutDirection.RIGHT;
+                            }
+                            else
+                            {
+                                note.direction = CutDirection.UP_RIGHT;
+                            }
+                        }
+                        else
+                        {
+                            note.direction = CutDirection.UP;
+                        }
+                    }
+                    else if (downSwinging)
+                    {
+                        if (leftSwinging)
+                        {
+                            if (doublePartner != null && doublePartner.direction == CutDirection.DOWN)
+                            {
+                                note.direction = CutDirection.DOWN;
+                            }
+                            else if (doublePartner != null && doublePartner.direction == CutDirection.LEFT)
+                            {
+                                note.direction = CutDirection.LEFT;
+                            }
+                            else
+                            {
+                                note.direction = CutDirection.DOWN_LEFT;
+                            }
+                        }
+                        else if (rightSwinging)
+                        {
+                            if (doublePartner != null && doublePartner.direction == CutDirection.DOWN)
+                            {
+                                note.direction = CutDirection.DOWN;
+                            }
+                            else if (doublePartner != null && doublePartner.direction == CutDirection.RIGHT)
+                            {
+                                note.direction = CutDirection.RIGHT;
+                            }
+                            else
+                            {
+                                note.direction = CutDirection.DOWN_RIGHT;
+                            }
+                        }
+                        else
+                        {
+                            note.direction = CutDirection.DOWN;
+                        }
+                    }
+                    else
+                    {
+                        if (leftSwinging)
+                        {
+                            note.direction = CutDirection.LEFT;
+                        }
+                        else if (rightSwinging)
+                        {
+                            note.direction = CutDirection.RIGHT;
+                        }
+                    }
+                }
+            }
+        }
+
+        int IsNoteFlowValid(ColorNote note, ColorNote? redPreviousNote, ColorNote? bluePreviousNote)
+        {
+            if (note.color == ColorType.RED)
+            {// Check directionality...
+                if (redPreviousNote == null)
+                {// Transitions are checked elsewhere...
+                    return 1;
+                }
+
+                int handPositionLine = redPreviousNote.line;
+                int handPositionLayer = redPreviousNote.layer;
+
+                // Predict hand position from previous note's direction...
+                switch (redPreviousNote.direction)
+                {
+                    case CutDirection.UP:
+                        handPositionLayer++;
+                        break;
+                    case CutDirection.DOWN:
+                        handPositionLayer--;
+                        break;
+                    case CutDirection.LEFT:
+                        handPositionLine--;
+                        break;
+                    case CutDirection.RIGHT:
+                        handPositionLine++;
+                        break;
+                    case CutDirection.UP_LEFT:
+                        handPositionLayer++;
+                        handPositionLine--;
+                        break;
+                    case CutDirection.UP_RIGHT:
+                        handPositionLayer++;
+                        handPositionLine++;
+                        break;
+                    case CutDirection.DOWN_LEFT:
+                        handPositionLayer--;
+                        handPositionLine--;
+                        break;
+                    case CutDirection.DOWN_RIGHT:
+                        handPositionLayer--;
+                        handPositionLine++;
+                        break;
+                    case CutDirection.ANY:
+                    default:
+                        break;
+                }
+
+                bool leftSwinging = note.line < handPositionLine;
+                bool rightSwinging = note.line > handPositionLine;
+                bool downSwinging = note.layer < handPositionLayer;
+                bool upSwinging = note.layer > handPositionLayer;
+                int direction = note.direction;
+
+                bool redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, redPreviousNote.direction);
+                return (redGood) ? 1 : 0;
+            }
+
+            if (note.color == ColorType.BLUE)
+            {// Check directionality...
+                if (bluePreviousNote == null)
+                {// Transitions are checked elsewhere...
+                    return 1;
+                }
+
+                int handPositionLine = bluePreviousNote.line;
+                int handPositionLayer = bluePreviousNote.layer;
+
+                // Predict hand position from previous note's direction...
+                switch (bluePreviousNote.direction)
+                {
+                    case CutDirection.UP:
+                        handPositionLayer++;
+                        break;
+                    case CutDirection.DOWN:
+                        handPositionLayer--;
+                        break;
+                    case CutDirection.LEFT:
+                        handPositionLine--;
+                        break;
+                    case CutDirection.RIGHT:
+                        handPositionLine++;
+                        break;
+                    case CutDirection.UP_LEFT:
+                        handPositionLayer++;
+                        handPositionLine--;
+                        break;
+                    case CutDirection.UP_RIGHT:
+                        handPositionLayer++;
+                        handPositionLine++;
+                        break;
+                    case CutDirection.DOWN_LEFT:
+                        handPositionLayer--;
+                        handPositionLine--;
+                        break;
+                    case CutDirection.DOWN_RIGHT:
+                        handPositionLayer--;
+                        handPositionLine++;
+                        break;
+                    case CutDirection.ANY:
+                    default:
+                        break;
+                }
+
+                bool leftSwinging = note.line < handPositionLine;
+                bool rightSwinging = note.line > handPositionLine;
+                bool downSwinging = note.layer < handPositionLayer;
+                bool upSwinging = note.layer > handPositionLayer;
+                int direction = note.direction;
+
+                bool blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, bluePreviousNote.direction);
+                return (blueGood) ? 1 : 0;
+            }
+
+            return 0;
         }
 
         int IsValidStartFrom(ChainOption option, ColorNote redPreviousNote, ColorNote bluePreviousNote)
@@ -909,47 +1433,73 @@ namespace BSAutoGenerator.Info.Chains
             // Find the first of each color...
             foreach (ChainData cd in option.data)
             {
-                if (red == null && cd.color1 == ColorType.RED)
+                if (red == null)
                 {
-                    red = cd;
+                    if (cd.color1 == ColorType.RED)
+                    {
+                        red = cd;
 
-                    if ((red.line1 == redPreviousNote.line && red.layer1 == redPreviousNote.layer)
-                        || (red.line1 == bluePreviousNote.line && red.layer1 == bluePreviousNote.layer))
-                    {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
-                        return -1;
+                        if ((red.line1 == redPreviousNote.line && red.layer1 == redPreviousNote.layer)
+                            || (red.line1 == bluePreviousNote.line && red.layer1 == bluePreviousNote.layer))
+                        {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
+                            return -1;
+                        }
+
+                        if (red.direction1 == redPreviousNote.direction)
+                        {// Don't use if the direction is the same as the last direction...
+                            return -1;
+                        }
+                    }
+
+                    if (cd.color2 == ColorType.RED)
+                    {
+                        red = cd;
+
+                        if ((red.line2 == redPreviousNote.line && red.layer2 == redPreviousNote.layer)
+                            || (red.line2 == bluePreviousNote.line && red.layer2 == bluePreviousNote.layer))
+                        {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
+                            return -1;
+                        }
+
+                        if (red.direction2 == redPreviousNote.direction)
+                        {// Don't use if the direction is the same as the last direction...
+                            return -1;
+                        }
                     }
                 }
 
-                if (blue == null && cd.color1 == ColorType.BLUE)
+                if (blue == null)
                 {
-                    blue = cd;
+                    if (cd.color1 == ColorType.BLUE)
+                    {
+                        blue = cd;
 
-                    if ((blue.line1 == redPreviousNote.line && blue.layer1 == redPreviousNote.layer)
-                        || (blue.line1 == bluePreviousNote.line && blue.layer1 == bluePreviousNote.layer))
-                    {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
-                        return -1;
+                        if ((blue.line1 == redPreviousNote.line && blue.layer1 == redPreviousNote.layer)
+                            || (blue.line1 == bluePreviousNote.line && blue.layer1 == bluePreviousNote.layer))
+                        {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
+                            return -1;
+                        }
+
+                        if (blue.direction1 == bluePreviousNote.direction)
+                        {// Don't use if the direction is the same as the last direction...
+                            return -1;
+                        }
                     }
-                }
 
-                if (red == null && cd.color2 == ColorType.RED)
-                {
-                    red = cd;
+                    if (cd.color2 == ColorType.BLUE)
+                    {
+                        blue = cd;
 
-                    if ((red.line2 == redPreviousNote.line && red.layer2 == redPreviousNote.layer)
-                        || (red.line2 == bluePreviousNote.line && red.layer2 == bluePreviousNote.layer))
-                    {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
-                        return -1;
-                    }
-                }
+                        if ((blue.line2 == redPreviousNote.line && blue.layer2 == redPreviousNote.layer)
+                            || (blue.line2 == bluePreviousNote.line && blue.layer2 == bluePreviousNote.layer))
+                        {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
+                            return -1;
+                        }
 
-                if (blue == null && cd.color2 == ColorType.BLUE)
-                {
-                    blue = cd;
-
-                    if ((blue.line2 == redPreviousNote.line && blue.layer2 == redPreviousNote.layer)
-                        || (blue.line2 == bluePreviousNote.line && blue.layer2 == bluePreviousNote.layer))
-                    {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
-                        return -1;
+                        if (blue.direction2 == bluePreviousNote.direction)
+                        {// Don't use if the direction is the same as the last direction...
+                            return -1;
+                        }
                     }
                 }
 
@@ -969,22 +1519,102 @@ namespace BSAutoGenerator.Info.Chains
 
                 if (red.color1 == ColorType.RED)
                 {
-                    leftSwinging = red.line1 < redPreviousNote.line;
-                    rightSwinging = red.line1 > redPreviousNote.line;
-                    downSwinging = red.layer1 < redPreviousNote.layer;
-                    upSwinging = red.layer1 > redPreviousNote.layer;
+                    int handPositionLine = redPreviousNote.line;
+                    int handPositionLayer = redPreviousNote.layer;
+
+                    // Predict hand position from previous note's direction...
+                    switch (redPreviousNote.direction)
+                    {
+                        case CutDirection.UP:
+                            handPositionLayer++;
+                            break;
+                        case CutDirection.DOWN:
+                            handPositionLayer--;
+                            break;
+                        case CutDirection.LEFT:
+                            handPositionLine--;
+                            break;
+                        case CutDirection.RIGHT:
+                            handPositionLine++;
+                            break;
+                        case CutDirection.UP_LEFT:
+                            handPositionLayer++;
+                            handPositionLine--;
+                            break;
+                        case CutDirection.UP_RIGHT:
+                            handPositionLayer++;
+                            handPositionLine++;
+                            break;
+                        case CutDirection.DOWN_LEFT:
+                            handPositionLayer--;
+                            handPositionLine--;
+                            break;
+                        case CutDirection.DOWN_RIGHT:
+                            handPositionLayer--;
+                            handPositionLine++;
+                            break;
+                        case CutDirection.ANY:
+                        default:
+                            break;
+                    }
+
+                    leftSwinging = red.line1 < handPositionLine;
+                    rightSwinging = red.line1 > handPositionLine;
+                    downSwinging = red.layer1 < handPositionLayer;
+                    upSwinging = red.layer1 > handPositionLayer;
                     direction = red.direction1;
+
+                    redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, redPreviousNote.direction);
                 }
                 else
                 {
-                    leftSwinging = red.line2 < redPreviousNote.line;
-                    rightSwinging = red.line2 > redPreviousNote.line;
-                    downSwinging = red.layer2 < redPreviousNote.layer;
-                    upSwinging = red.layer2 > redPreviousNote.layer;
-                    direction = red.direction2;
-                }
+                    int handPositionLine = redPreviousNote.line;
+                    int handPositionLayer = redPreviousNote.layer;
 
-                redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging);
+                    // Predict hand position from previous note's direction...
+                    switch (redPreviousNote.direction)
+                    {
+                        case CutDirection.UP:
+                            handPositionLayer++;
+                            break;
+                        case CutDirection.DOWN:
+                            handPositionLayer--;
+                            break;
+                        case CutDirection.LEFT:
+                            handPositionLine--;
+                            break;
+                        case CutDirection.RIGHT:
+                            handPositionLine++;
+                            break;
+                        case CutDirection.UP_LEFT:
+                            handPositionLayer++;
+                            handPositionLine--;
+                            break;
+                        case CutDirection.UP_RIGHT:
+                            handPositionLayer++;
+                            handPositionLine++;
+                            break;
+                        case CutDirection.DOWN_LEFT:
+                            handPositionLayer--;
+                            handPositionLine--;
+                            break;
+                        case CutDirection.DOWN_RIGHT:
+                            handPositionLayer--;
+                            handPositionLine++;
+                            break;
+                        case CutDirection.ANY:
+                        default:
+                            break;
+                    }
+
+                    leftSwinging = red.line2 < handPositionLine;
+                    rightSwinging = red.line2 > handPositionLine;
+                    downSwinging = red.layer2 < handPositionLayer;
+                    upSwinging = red.layer2 > handPositionLayer;
+                    direction = red.direction2;
+
+                    redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, redPreviousNote.direction);
+                }
             }
 
             if (blue != null)
@@ -997,22 +1627,102 @@ namespace BSAutoGenerator.Info.Chains
 
                 if (blue.color1 == ColorType.BLUE)
                 {
-                    leftSwinging = blue.line1 < bluePreviousNote.line;
-                    rightSwinging = blue.line1 > bluePreviousNote.line;
-                    downSwinging = blue.layer1 < bluePreviousNote.layer;
-                    upSwinging = blue.layer1 > bluePreviousNote.layer;
+                    int handPositionLine = bluePreviousNote.line;
+                    int handPositionLayer = bluePreviousNote.layer;
+
+                    // Predict hand position from previous note's direction...
+                    switch (redPreviousNote.direction)
+                    {
+                        case CutDirection.UP:
+                            handPositionLayer++;
+                            break;
+                        case CutDirection.DOWN:
+                            handPositionLayer--;
+                            break;
+                        case CutDirection.LEFT:
+                            handPositionLine--;
+                            break;
+                        case CutDirection.RIGHT:
+                            handPositionLine++;
+                            break;
+                        case CutDirection.UP_LEFT:
+                            handPositionLayer++;
+                            handPositionLine--;
+                            break;
+                        case CutDirection.UP_RIGHT:
+                            handPositionLayer++;
+                            handPositionLine++;
+                            break;
+                        case CutDirection.DOWN_LEFT:
+                            handPositionLayer--;
+                            handPositionLine--;
+                            break;
+                        case CutDirection.DOWN_RIGHT:
+                            handPositionLayer--;
+                            handPositionLine++;
+                            break;
+                        case CutDirection.ANY:
+                        default:
+                            break;
+                    }
+
+                    leftSwinging = blue.line1 < handPositionLine;
+                    rightSwinging = blue.line1 > handPositionLine;
+                    downSwinging = blue.layer1 < handPositionLayer;
+                    upSwinging = blue.layer1 > handPositionLayer;
                     direction = blue.direction1;
+
+                    blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, bluePreviousNote.direction);
                 }
                 else
                 {
-                    leftSwinging = blue.line2 < bluePreviousNote.line;
-                    rightSwinging = blue.line2 > bluePreviousNote.line;
-                    downSwinging = blue.layer2 < bluePreviousNote.layer;
-                    upSwinging = blue.layer2 > bluePreviousNote.layer;
-                    direction = blue.direction2;
-                }
+                    int handPositionLine = bluePreviousNote.line;
+                    int handPositionLayer = bluePreviousNote.layer;
 
-                blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging);
+                    // Predict hand position from previous note's direction...
+                    switch (redPreviousNote.direction)
+                    {
+                        case CutDirection.UP:
+                            handPositionLayer++;
+                            break;
+                        case CutDirection.DOWN:
+                            handPositionLayer--;
+                            break;
+                        case CutDirection.LEFT:
+                            handPositionLine--;
+                            break;
+                        case CutDirection.RIGHT:
+                            handPositionLine++;
+                            break;
+                        case CutDirection.UP_LEFT:
+                            handPositionLayer++;
+                            handPositionLine--;
+                            break;
+                        case CutDirection.UP_RIGHT:
+                            handPositionLayer++;
+                            handPositionLine++;
+                            break;
+                        case CutDirection.DOWN_LEFT:
+                            handPositionLayer--;
+                            handPositionLine--;
+                            break;
+                        case CutDirection.DOWN_RIGHT:
+                            handPositionLayer--;
+                            handPositionLine++;
+                            break;
+                        case CutDirection.ANY:
+                        default:
+                            break;
+                    }
+
+                    leftSwinging = blue.line2 < handPositionLine;
+                    rightSwinging = blue.line2 > handPositionLine;
+                    downSwinging = blue.layer2 < handPositionLayer;
+                    upSwinging = blue.layer2 > handPositionLayer;
+                    direction = blue.direction2;
+
+                    blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, bluePreviousNote.direction);
+                }
             }
 
             if (redGood && blue == null)
@@ -1035,16 +1745,12 @@ namespace BSAutoGenerator.Info.Chains
             bool blueExists = false;
             bool blueSimilar = false;
 
-            int validStart = IsValidStartFrom(option, redPreviousNote, bluePreviousNote);
+            /*int validStart = IsValidStartFrom(option, redPreviousNote, bluePreviousNote);
 
-            if (validStart == 1)
-            {// Looks ok procedurally...
-                return 4;
-            }
-            else if (validStart == -1)
+            if (validStart == -1)
             {// Don't use this, starts on the same layer and line as a last note...
                 return 0;
-            }
+            }*/
 
             // Has this transition been seen in the mapping data?
             foreach (var reds in option.previousRedNotes)
@@ -1079,6 +1785,14 @@ namespace BSAutoGenerator.Info.Chains
             }
             else
             {
+
+                /*if (validStart == 1)
+                {// Looks ok procedurally...
+                    //return 4;
+                    return 3;
+                }*/
+
+                
                 if (!redExists)
                 {// Find similar...
                     foreach (var reds in option.previousRedNotes)
@@ -1086,9 +1800,11 @@ namespace BSAutoGenerator.Info.Chains
                         if (IntDiff(redPreviousNote.line, reds.line) <= 1
                             && IntDiff(redPreviousNote.layer, reds.layer) <= 1
                             //&& redPreviousNote.color == reds.color
+                            //&& redPreviousNote.direction == reds.direction
                             //&& IsSimilarDirection(redPreviousNote.direction, reds.direction)
-                            && (redPreviousNote.color == reds.color || redPreviousNote.color == reds.color)
-                            /*&& redPreviousNote.angle == reds.angle*/)
+                            && (redPreviousNote.color == reds.color || redPreviousNote.direction == reds.direction)
+                            //&& redPreviousNote.angle == reds.angle
+                            )
                         {
                             redSimilar = true;
                             break;
@@ -1107,9 +1823,11 @@ namespace BSAutoGenerator.Info.Chains
                         if (IntDiff(bluePreviousNote.line, blues.line) <= 1
                             && IntDiff(bluePreviousNote.layer, blues.layer) <= 1
                             //&& bluePreviousNote.color == blues.color
+                            //&& bluePreviousNote.direction == blues.direction
                             //&& IsSimilarDirection(bluePreviousNote.direction, blues.direction)
-                            && (bluePreviousNote.color == blues.color || bluePreviousNote.color == blues.color)
-                            /*&& bluePreviousNote.angle == blues.angle*/)
+                            && (bluePreviousNote.color == blues.color || bluePreviousNote.direction == blues.direction)
+                            //&& bluePreviousNote.angle == blues.angle
+                            )
                         {
                             blueSimilar = true;
                             break;
@@ -1127,7 +1845,8 @@ namespace BSAutoGenerator.Info.Chains
                 }
                 else if (redExists || blueExists)
                 {
-                    /*string redDebug = "Wanted Red:\nli: " + redPreviousNote.line + " la: " + redPreviousNote.layer + " d: " + redPreviousNote.direction + "\nKnown Red:\n";
+#if _DEBUGGING_
+                    string redDebug = "Wanted Red:\nli: " + redPreviousNote.line + " la: " + redPreviousNote.layer + " d: " + redPreviousNote.direction + "\nKnown Red:\n";
                     string blueDebug = "\n\nWanted Blue:\nli: " + bluePreviousNote.line + " la: " + bluePreviousNote.layer + " d: " + bluePreviousNote.direction + "\nKnown Blue:\n";
                     bool first = true;
 
@@ -1164,7 +1883,8 @@ namespace BSAutoGenerator.Info.Chains
                         first = false;
                     }
 
-                    MessageBox.Show(redDebug + blueDebug);*/
+                    MessageBox.Show(redDebug + blueDebug);
+#endif //_DEBUGGING_
 
                     return 2;
                 }
@@ -1172,16 +1892,40 @@ namespace BSAutoGenerator.Info.Chains
                 {
                     return 1;
                 }
+                
             }
 
             return 0;
         }
 
-        public ChainOption? SelectChainOfLength(int length, ColorNote? redPreviousNote = null, ColorNote? bluePreviousNote = null)
+        public ChainOption? SelectChainOfLength(int length, ColorNote? redPrev = null, ColorNote? bluePrev = null)
         {
             try
             {
                 int weightUsed = 4;
+
+                ColorNote? redPreviousNote = redPrev;
+                ColorNote? bluePreviousNote = bluePrev;
+
+                if (redPreviousNote != null && bluePreviousNote != null)
+                {// Check the times, if one is ages ago, null it...
+                    bool first = (redPreviousNote.beat <= bluePreviousNote.beat) ? false : true;
+
+                    if (first)
+                    {
+                        if (bluePreviousNote.beat - redPreviousNote.beat >= 10.0f)
+                        {// Player has probably reseted this hand...
+                            redPreviousNote = null;
+                        }
+                    }
+                    else
+                    {
+                        if (redPreviousNote.beat - bluePreviousNote.beat >= 10.0f)
+                        {// Player has probably reseted this hand...
+                            bluePreviousNote = null;
+                        }
+                    }
+                }
 
                 List<ChainOption> options = new List<ChainOption>();
                 List<ChainOption> secondaryOptions = new List<ChainOption>();

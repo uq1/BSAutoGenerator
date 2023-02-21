@@ -1,5 +1,6 @@
 ﻿//#define _DISABLED_POPUPS_
 #define _INTERNAL_BPM_DETECTOR_ // experimental one never works...
+//#define _EXPERIMENTAL_SETTINGS_
 
 using System.Windows;
 using System.Text.Json;
@@ -45,6 +46,7 @@ using NAudio.Wave;
 using Chihya.Tempo;
 using System.Windows.Forms.PropertyGridInternal;
 using System.Threading.Channels;
+using BSAutoGenerator.Info.Chains;
 
 namespace BSAutoGenerator
 {
@@ -67,6 +69,8 @@ namespace BSAutoGenerator
         // Config values... Command line...
         public static bool SILENCE = false;
         public static bool USE_BEATSAGE = false;
+        public static bool USE_BEATSAGE_REMAP = false;
+        public static bool USE_BEATSAGE_REMAP_DOUBLES = false;
         public static bool ENABLE_OBSTACLES = false;
         public static bool ENABLE_DOT_TRANSITIONS = false;
         public static string PATTERNS_FOLDER = "default";
@@ -83,6 +87,7 @@ namespace BSAutoGenerator
         int SPEED_EXPERT = 14;
         int SPEED_EXPERT_PLUS = 16;
 
+#if _EXPERIMENTAL_SETTINGS_
         //float BPM_DIVIDER = 2.0f;
         float BPM_DIVIDER = 3.75f;
         //float IRANGE_MULTIPLIER = 0.55f;
@@ -93,6 +98,9 @@ namespace BSAutoGenerator
         float IRANGE_HARD = 0.003f;            // Hard
         float IRANGE_EXPERT = 0.005f;          // Expert
         float IRANGE_EXPERT_PLUS = 0.010f;     // Expert+
+#else //!_EXPERIMENTAL_SETTINGS_
+        float BPM_DIVIDER = 1.0f;
+        float IRANGE_MULTIPLIER = 1.0f;
 
         /*
         float IRANGE_EASY = 0.0005f;            // Easy
@@ -101,6 +109,28 @@ namespace BSAutoGenerator
         float IRANGE_EXPERT = 0.00025f;         // Expert
         float IRANGE_EXPERT_PLUS = 0.005f;      // Expert+
         */
+        /*
+        float IRANGE_EASY = 0.00025f;            // Easy
+        float IRANGE_STANDARD = 0.000375f;       // Standard
+        float IRANGE_HARD = 0.000075f;           // Hard
+        float IRANGE_EXPERT = 0.000125f;         // Expert
+        float IRANGE_EXPERT_PLUS = 0.0025f;      // Expert+
+        */
+        
+        /*
+        float IRANGE_EASY = 0.001f;            // Easy
+        float IRANGE_STANDARD = 0.001f;       // Standard
+        float IRANGE_HARD = 0.001f;           // Hard
+        float IRANGE_EXPERT = 0.001f;         // Expert
+        float IRANGE_EXPERT_PLUS = 0.001f;      // Expert+
+        */
+
+        float IRANGE_EASY = 0.01f;            // Easy
+        float IRANGE_STANDARD = 0.01f;       // Standard
+        float IRANGE_HARD = 0.01f;           // Hard
+        float IRANGE_EXPERT = 0.01f;         // Expert
+        float IRANGE_EXPERT_PLUS = 0.01f;      // Expert+
+#endif //_EXPERIMENTAL_SETTINGS_
 
         public MainWindow()
         {
@@ -173,6 +203,16 @@ namespace BSAutoGenerator
                     if (arg.Contains("--silent", StringComparison.OrdinalIgnoreCase))
                     {
                         run_silent = true;
+                    }
+                    else if (arg.Contains("--beatsage-remap-doubles", StringComparison.OrdinalIgnoreCase))
+                    {
+                        USE_BEATSAGE_REMAP_DOUBLES = true;
+                        USE_BEATSAGE = true; // also set this, as it is implied...
+                    }
+                    else if (arg.Contains("--beatsage-remap", StringComparison.OrdinalIgnoreCase))
+                    {
+                        USE_BEATSAGE_REMAP = true;
+                        USE_BEATSAGE = true; // also set this, as it is implied...
                     }
                     else if (arg.Contains("--beatsage", StringComparison.OrdinalIgnoreCase))
                     {
@@ -586,15 +626,20 @@ namespace BSAutoGenerator
                 }
 
                 // Set author/editor info before saving...
-                if (!USE_BEATSAGE)
+                if (USE_BEATSAGE_REMAP || USE_BEATSAGE_REMAP_DOUBLES)
                 {
-                    infoData._levelAuthorName = "BSAutoGenerator (RealFlow v3)";
-                    infoData._customData._editors._lastEditedBy = "BSAutoGenerator (RealFlow v3)";
+                    infoData._levelAuthorName = "BSAutoGenerator (RealFlow v4 BeatSage Remap)";
+                    infoData._customData._editors._lastEditedBy = infoData._levelAuthorName;
+                }
+                else if (!USE_BEATSAGE)
+                {
+                    infoData._levelAuthorName = "BSAutoGenerator (RealFlow v4)";
+                    infoData._customData._editors._lastEditedBy = infoData._levelAuthorName;
                 }
                 else
                 {
                     infoData._levelAuthorName = "BSAutoGenerator (BeatSage)";
-                    infoData._customData._editors._lastEditedBy = "BSAutoGenerator (BeatSage)";
+                    infoData._customData._editors._lastEditedBy = infoData._levelAuthorName;
                 }
 
                 //MessageBox.Show("Saving to " + complete);
@@ -937,7 +982,7 @@ namespace BSAutoGenerator
                     burstSliders = new();
                     obstacles = new();
 
-                    (colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], limiter);
+                    (colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], false/*limiter*/, i);
 
                     if(colorNotes.Count > 0)
                     {
@@ -1408,7 +1453,7 @@ namespace BSAutoGenerator
                     obstacles = new();
 
                     //(colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm, indistinguishableRange[i], limiter);
-                    (colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm / BPM_DIVIDER, indistinguishableRange[i], limiter);
+                    (colorNotes, burstSliders, obstacles) = Onset.GetMap(filePath, bpm / BPM_DIVIDER, indistinguishableRange[i], false/*limiter*/, i);
 
                     if (BPM_DIVIDER != 1.0f)
                     {// If using a custom divider, convert the note times back to the real BPM, as beatsaber quest seems to hate low BPM songs.
@@ -1560,8 +1605,14 @@ namespace BSAutoGenerator
 
             string selectedDifficulties = "Hard,Expert,Normal,ExpertPlus";
             //string selectedGameModes = "Standard,90Degree,NoArrows,OneSaber";
-            string selectedGameModes = "Standard,NoArrows,OneSaber";
             //string selectedSongEvents = "DotBlocks,Obstacles,Bombs";
+            string selectedGameModes = "Standard,NoArrows,OneSaber";
+            
+            if (USE_BEATSAGE_REMAP || USE_BEATSAGE_REMAP_DOUBLES)
+            {
+                selectedGameModes = "Standard";
+            }
+            
             string selectedSongEvents = "DotBlocks,Obstacles";
             string selectedEnvironment = "DefaultEnvironment";
             string selectedModelVersion = "v2-flow"; // V2
@@ -1839,6 +1890,29 @@ namespace BSAutoGenerator
             // Process...
             //
             //MessageBox.Show("Processing.");
+
+            if (USE_BEATSAGE_REMAP || USE_BEATSAGE_REMAP_DOUBLES)
+            {// Remap the beatsage output with the user's patterns. This way we keep timings from BS, but use the user's favorate patterns on notes...
+                string windowTitle = this.Title;
+                this.Title = windowTitle + "(Re-mapping)";
+
+                //MessageBox.Show("Re-mapping.");
+
+                for (int i = 0; i < difficultyData.Count(); i++)
+                {
+                    // Merge any close notes into doubles...
+                    (difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles) = NoteGenerator.CheckDoubles(difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles);
+                    // Remap...
+                    (difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles) = NoteGenerator.Remapper(difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles, USE_BEATSAGE_REMAP_DOUBLES);
+
+                    if (!ENABLE_OBSTACLES)
+                    {// Obstacles are disabled, so remove the ones that beatsage added...
+                        difficultyData[i].obstacles = new();
+                    }
+                }
+
+                this.Title = windowTitle;
+            }
 
             DiffListBox.SelectedIndex = 0;
 

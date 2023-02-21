@@ -1,4 +1,6 @@
-﻿using BSAutoGenerator.Algorithm;
+﻿//#define _CHECK_NOTE_FLOWS_
+
+using BSAutoGenerator.Algorithm;
 using BSAutoGenerator.Data;
 using BSAutoGenerator.Data.Structure;
 using BSAutoGenerator.Data.V2;
@@ -94,6 +96,38 @@ namespace BSAutoGenerator.Info.Patterns
             return false;
         }
 
+        bool CheckIfPatternOptionFlows(List<PatternData> newPattern)
+        {
+#if _CHECK_NOTE_FLOWS_
+            ColorNote? previousRed = null;
+            ColorNote? previousBlue = null;
+
+            for (int j = 0; j < newPattern.Count; j++)
+            {
+                PatternData data = newPattern[j];
+
+                ColorNote note = new ColorNote(0, data.color, data.line, data.layer, data.direction);
+
+                int valid = IsNoteFlowValid(note, previousRed, previousBlue);
+
+                if (valid < 1)
+                {
+                    return false;
+                }
+
+                if (note.color == ColorType.RED)
+                {
+                    previousRed = note;
+                }
+                else if (note.color == ColorType.BLUE)
+                {
+                    previousBlue = note;
+                }
+            }
+#endif //_CHECK_NOTE_FLOWS_
+
+            return true;
+        }
 
         PatternOption? CheckIfPatternOptionExists(List<PatternData> newPattern, int checkLength = -1)
         {
@@ -246,6 +280,13 @@ namespace BSAutoGenerator.Info.Patterns
                         newPattern.data = data;
                         newPattern.obstacles = walls;
 
+                        bool checkPattern = CheckIfPatternOptionFlows(data);
+
+                        if (!checkPattern)
+                        {// This pattern in the original file has some flow issues, ignore it...
+                            continue;
+                        }
+
                         PatternOption? existingPattern = CheckIfPatternOptionExists(data);
 
                         if (existingPattern == null)
@@ -327,6 +368,13 @@ namespace BSAutoGenerator.Info.Patterns
                             data.Add(item);
 
                             newPattern.data = data;
+
+                            bool checkPattern = CheckIfPatternOptionFlows(data);
+
+                            if (!checkPattern)
+                            {// This pattern in the original file has some flow issues, ignore it...
+                                continue;
+                            }
 
                             PatternOption? existingPattern = CheckIfPatternOptionExists(data);
 
@@ -642,66 +690,106 @@ namespace BSAutoGenerator.Info.Patterns
             return (diff > 0) ? diff : -diff;
         }
 
-        bool IsValidDirectionForSwing(int direction, bool leftSwinging, bool rightSwinging, bool downSwinging, bool upSwinging)
+        bool IsValidDirectionForSwing(int direction, bool leftSwinging, bool rightSwinging, bool downSwinging, bool upSwinging, int previousDirection)
         {
             if (direction == CutDirection.ANY)
             {
                 return true;
             }
 
-            if (leftSwinging
-                && upSwinging
-                && (direction == CutDirection.UP_LEFT /*|| direction == CutDirection.UP || direction == CutDirection.LEFT*/))
+            if (direction == previousDirection)
+            {
+                return false;
+            }
+
+            if ((leftSwinging || upSwinging)
+                && (direction == CutDirection.UP_LEFT || direction == CutDirection.UP || direction == CutDirection.LEFT))
             {
                 return true;
             }
 
-            if (rightSwinging
-                && upSwinging
-                && (direction == CutDirection.UP_RIGHT /*|| direction == CutDirection.UP || direction == CutDirection.RIGHT*/))
+            if ((rightSwinging || upSwinging)
+                && (direction == CutDirection.UP_RIGHT || direction == CutDirection.UP || direction == CutDirection.RIGHT))
             {
                 return true;
             }
 
-            if (leftSwinging
-                && downSwinging
-                && (direction == CutDirection.DOWN_LEFT /*|| direction == CutDirection.DOWN || direction == CutDirection.LEFT*/))
+            if ((leftSwinging || downSwinging)
+                && (direction == CutDirection.DOWN_LEFT || direction == CutDirection.DOWN || direction == CutDirection.LEFT))
             {
                 return true;
             }
 
-            if (rightSwinging
-                && downSwinging
-                && (direction == CutDirection.DOWN_RIGHT /*|| direction == CutDirection.DOWN || direction == CutDirection.RIGHT*/))
+            if ((rightSwinging || downSwinging)
+                && (direction == CutDirection.DOWN_RIGHT || direction == CutDirection.DOWN || direction == CutDirection.RIGHT))
             {
                 return true;
             }
 
             if (upSwinging
-                && (/*direction == CutDirection.UP_LEFT ||*/ direction == CutDirection.UP /*|| direction == CutDirection.UP_RIGHT*/))
+                && (direction == CutDirection.UP))
             {
                 return true;
             }
 
             if (downSwinging
-                && (/*direction == CutDirection.DOWN_LEFT ||*/ direction == CutDirection.DOWN /*|| direction == CutDirection.DOWN_RIGHT*/))
+                && (direction == CutDirection.DOWN))
             {
                 return true;
             }
 
             if (leftSwinging
-                && (/*direction == CutDirection.DOWN_LEFT ||*/ direction == CutDirection.LEFT /*|| direction == CutDirection.UP_LEFT*/))
+                && (direction == CutDirection.LEFT))
             {
                 return true;
             }
 
             if (rightSwinging
-                && (/*direction == CutDirection.DOWN_RIGHT ||*/ direction == CutDirection.RIGHT /*|| direction == CutDirection.UP_RIGHT*/))
+                && (direction == CutDirection.RIGHT))
             {
                 return true;
             }
-
+            
             return false;
+        }
+
+        int IsNoteFlowValid(ColorNote note, ColorNote? redPreviousNote, ColorNote? bluePreviousNote)
+        {
+            if (note.color == ColorType.RED)
+            {// Check directionality...
+                if (redPreviousNote == null)
+                {// Transitions are checked elsewhere...
+                    return 1;
+                }
+
+                bool leftSwinging = note.line < redPreviousNote.line;
+                bool rightSwinging = note.line > redPreviousNote.line;
+                bool downSwinging = note.layer < redPreviousNote.layer;
+                bool upSwinging = note.layer > redPreviousNote.layer;
+                int direction = note.direction;
+
+                bool redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, redPreviousNote.direction);
+                return (redGood) ? 1 : 0;
+            }
+
+            if (note.color == ColorType.BLUE)
+            {// Check directionality...
+                if (bluePreviousNote == null)
+                {// Transitions are checked elsewhere...
+                    return 1;
+                }
+
+                bool leftSwinging = note.line < bluePreviousNote.line;
+                bool rightSwinging = note.line > bluePreviousNote.line;
+                bool downSwinging = note.layer < bluePreviousNote.layer;
+                bool upSwinging = note.layer > bluePreviousNote.layer;
+                int direction = note.direction;
+
+                bool blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, bluePreviousNote.direction);
+                return (blueGood) ? 1 : 0;
+            }
+
+            return 0;
         }
 
         int IsValidStartFrom(PatternOption option, ColorNote redPreviousNote, ColorNote bluePreviousNote)
@@ -724,6 +812,11 @@ namespace BSAutoGenerator.Info.Patterns
                     {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
                         return -1;
                     }
+
+                    if (red.direction == redPreviousNote.direction)
+                    {// Don't use if the direction is the same as the last direction...
+                        return -1;
+                    }
                 }
 
                 if (blue == null && cd.color == ColorType.BLUE)
@@ -733,6 +826,11 @@ namespace BSAutoGenerator.Info.Patterns
                     if ((blue.line == redPreviousNote.line && blue.layer == redPreviousNote.layer)
                         || (blue.line == bluePreviousNote.line && blue.layer == bluePreviousNote.layer))
                     {// Don't use when the line and layer of a start note is on the same layer and line of the previous notes...
+                        return -1;
+                    }
+
+                    if (blue.direction == bluePreviousNote.direction)
+                    {// Don't use if the direction is the same as the last direction...
                         return -1;
                     }
                 }
@@ -751,18 +849,18 @@ namespace BSAutoGenerator.Info.Patterns
                 bool upSwinging = red.layer > redPreviousNote.layer;
                 int direction = red.direction;
 
-                redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging);
+                redGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, redPreviousNote.direction);
             }
 
             if (blue != null)
             {// Check directionality...
-                bool leftSwinging = blue.line < redPreviousNote.line;
-                bool rightSwinging = blue.line > redPreviousNote.line;
-                bool downSwinging = blue.layer < redPreviousNote.layer;
-                bool upSwinging = blue.layer > redPreviousNote.layer;
+                bool leftSwinging = blue.line < bluePreviousNote.line;
+                bool rightSwinging = blue.line > bluePreviousNote.line;
+                bool downSwinging = blue.layer < bluePreviousNote.layer;
+                bool upSwinging = blue.layer > bluePreviousNote.layer;
                 int direction = blue.direction;
 
-                blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging);
+                blueGood = IsValidDirectionForSwing(direction, leftSwinging, rightSwinging, downSwinging, upSwinging, bluePreviousNote.direction);
             }
 
             if (redGood && blue == null)
@@ -785,21 +883,12 @@ namespace BSAutoGenerator.Info.Patterns
             bool blueExists = false;
             bool blueSimilar = false;
 
-            int validStart = IsValidStartFrom(option, redPreviousNote, bluePreviousNote);
+            /*int validStart = IsValidStartFrom(option, redPreviousNote, bluePreviousNote);
 
-            /*if (option.obstacles.Count <= 0)
-            {// testing walls...
-                return -1;
-            }*/
-
-            if (validStart == 1)
-            {// Looks ok procedurally...
-                return 4;
-            }
-            else if (validStart == -1)
+            if (validStart == -1)
             {// Don't use this, starts on the same layer and line as a last note...
                 return 0;
-            }
+            }*/
 
             // Has this transition been seen in the mapping data?
             foreach (var reds in option.previousRedNotes)
@@ -834,6 +923,12 @@ namespace BSAutoGenerator.Info.Patterns
             }
             else
             {
+                /*if (validStart == 1)
+                {// Looks ok procedurally...
+                    //return 4;
+                    return 3;
+                }
+                */
                 if (!redExists)
                 {// Find similar...
                     foreach (var reds in option.previousRedNotes)
@@ -844,7 +939,8 @@ namespace BSAutoGenerator.Info.Patterns
                             //&& redPreviousNote.direction == reds.direction
                             //&& IsSimilarDirection(redPreviousNote.direction, reds.direction)
                             && (redPreviousNote.color == reds.color || redPreviousNote.direction == reds.direction)
-                            /*&& redPreviousNote.angle == reds.angle*/)
+                            //&& redPreviousNote.angle == reds.angle
+                            )
                         {
                             redSimilar = true;
                             break;
@@ -866,7 +962,8 @@ namespace BSAutoGenerator.Info.Patterns
                             //&& bluePreviousNote.direction == blues.direction
                             //&& IsSimilarDirection(bluePreviousNote.direction, blues.direction)
                             && (bluePreviousNote.color == blues.color || bluePreviousNote.direction == blues.direction)
-                            /*&& bluePreviousNote.angle == blues.angle*/)
+                            //&& bluePreviousNote.angle == blues.angle
+                            )
                         {
                             blueSimilar = true;
                             break;
@@ -884,7 +981,8 @@ namespace BSAutoGenerator.Info.Patterns
                 }
                 else if (redExists || blueExists)
                 {
-                    /*string redDebug = "Wanted Red:\nli: " + redPreviousNote.line + " la: " + redPreviousNote.layer + " d: " + redPreviousNote.direction + "\nKnown Red:\n";
+#if _DEBUGGING_
+                    string redDebug = "Wanted Red:\nli: " + redPreviousNote.line + " la: " + redPreviousNote.layer + " d: " + redPreviousNote.direction + "\nKnown Red:\n";
                     string blueDebug = "\n\nWanted Blue:\nli: " + bluePreviousNote.line + " la: " + bluePreviousNote.layer + " d: " + bluePreviousNote.direction + "\nKnown Blue:\n";
                     bool first = true;
 
@@ -921,7 +1019,8 @@ namespace BSAutoGenerator.Info.Patterns
                         first = false;
                     }
 
-                    MessageBox.Show(redDebug + blueDebug);*/
+                    MessageBox.Show(redDebug + blueDebug);
+#endif //_DEBUGGING_
 
                     return 2;
                 }
@@ -934,11 +1033,34 @@ namespace BSAutoGenerator.Info.Patterns
             return 0;
         }
 
-        public PatternOption? SelectPatternOfLength(int length, ColorNote? redPreviousNote = null, ColorNote? bluePreviousNote = null)
+        public PatternOption? SelectPatternOfLength(int length, ColorNote? redPrev = null, ColorNote? bluePrev = null)
         {
             try
             {
                 int weightUsed = 4;
+
+                ColorNote? redPreviousNote = redPrev;
+                ColorNote? bluePreviousNote = bluePrev;
+
+                if (redPreviousNote != null && bluePreviousNote != null)
+                {// Check the times, if one is ages ago, null it...
+                    bool first = (redPreviousNote.beat <= bluePreviousNote.beat) ? false : true;
+
+                    if (first)
+                    {
+                        if (bluePreviousNote.beat - redPreviousNote.beat >= 10.0f)
+                        {// Player has probably reseted this hand...
+                            redPreviousNote = null;
+                        }
+                    }
+                    else
+                    {
+                        if (redPreviousNote.beat - bluePreviousNote.beat >= 10.0f)
+                        {// Player has probably reseted this hand...
+                            bluePreviousNote = null;
+                        }
+                    }
+                }
 
                 List<PatternOption> options = new List<PatternOption>();
                 List<PatternOption> secondaryOptions = new List<PatternOption>();

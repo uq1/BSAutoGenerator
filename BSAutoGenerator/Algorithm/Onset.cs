@@ -1,4 +1,6 @@
-﻿using BSAutoGenerator.Data.Structure;
+﻿#define _EXPERIMENTAL_TIMINGS_
+
+using BSAutoGenerator.Data.Structure;
 using BSAutoGenerator.Onset_Detection;
 using System;
 using System.Collections.Generic;
@@ -10,6 +12,29 @@ namespace BSAutoGenerator.Algorithm
 {
     internal class Onset
     {
+#if _EXPERIMENTAL_TIMINGS_
+        // Var for the onset detection, lower = include more noise. Default: 1.5f
+        //public const float ONSET_SENSITIVITY = 1.55f;
+        //public const float ONSET_SENSITIVITY = 1.2f;
+        //public const float ONSET_SENSITIVITY = 1.4f;
+        public const float ONSET_SENSITIVITY = 1.35f;
+
+        // Onset must be above that number to add a double note
+        //public const float DOUBLE_THRESHOLD = 0.2f;
+        //public const float DOUBLE_THRESHOLD = 0.15f;
+        //public const float DOUBLE_THRESHOLD = 0.2f;
+
+        // Maximum speed for a note placement (in beat)
+        //public const double LIMITER = (1d / 8d);
+        //public const double LIMITER = (1d / 16d);
+        //public const double LIMITER = (1d / 8d);
+        //public const double LIMITER = (1d / 4d);
+
+        // Maximum speed for a double note placement (in beat)
+        //public const double DOUBLE_LIMITER = (1d / 3d);
+        public const double DOUBLE_LIMITER = (1d / 6d);
+
+#else //!_EXPERIMENTAL_TIMINGS_
         // Var for the onset detection, lower = include more noise. Default: 1.5f
         public const float ONSET_SENSITIVITY = 1.3f;
         // Onset must be above that number to add a double note
@@ -18,16 +43,22 @@ namespace BSAutoGenerator.Algorithm
         public const double LIMITER = (1d / 8d);
         // Maximum speed for a double note placement (in beat)
         public const double DOUBLE_LIMITER = (1d / 3d);
+#endif //_EXPERIMENTAL_TIMINGS_
 
         static public AudioAnalysis audioAnalysis = new();
 
-        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) GetMap(string audioPath, float bpm, float indistinguishableRange, bool limiter)
+        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) GetMap(string audioPath, float bpm, float indistinguishableRange, bool limiter, int difficulty)
         {
             // New list of notes and chain, will be filled via PatternCreator.cs
             List<ColorNote> notes = new List<ColorNote>();
             List<float> timings = new();
             List<BurstSliderData> chains = new();
             List<Obstacle> obstacles = new();
+
+            double LIMITER = (2.5d + (difficulty*8d)) / 28d;// (1d / (4.0d + difficulty));
+            float DOUBLE_THRESHOLD = (difficulty + 8.0f) / 20.0f;//(1.0f / (difficulty + 1.0f)) * 0.2f;
+
+            LIMITER *= 1.2f / ONSET_SENSITIVITY;
 
             try
             {
@@ -122,6 +153,9 @@ namespace BSAutoGenerator.Algorithm
                         i--;
                     }
                 }
+
+                //System.Windows.MessageBox.Show("Difficulty: " + difficulty + "\nLimiter: " + LIMITER + "\nTimings Count: " + timings.Count);
+
                 // Method to generate the map pattern
                 (notes, chains, obstacles) = NoteGenerator.AutoMapper(timings, bpm, limiter);
             }

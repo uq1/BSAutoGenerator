@@ -74,6 +74,7 @@ namespace BSAutoGenerator
         public static bool ENABLE_OBSTACLES = false;
         public static bool ENABLE_DOT_TRANSITIONS = false;
         public static string PATTERNS_FOLDER = "default";
+        public static string CMDL_ARTIST_NAME = "unknown";
 
         // Config values... Difficulty...
         /*int SPEED_EASY = 7;
@@ -249,6 +250,15 @@ namespace BSAutoGenerator
                         if (args.Length > i + 1)
                         {
                             PATTERNS_FOLDER = args[i + 1];
+                            skip = true; // we just read the next arg, skip it...
+                            continue;
+                        }
+                    }
+                    else if (arg.Contains("--artist", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (args.Length > i + 1)
+                        {
+                            CMDL_ARTIST_NAME = args[i + 1];
                             skip = true; // we just read the next arg, skip it...
                             continue;
                         }
@@ -1146,8 +1156,15 @@ namespace BSAutoGenerator
 
                 if (ARTIST_NAME == null || ARTIST_NAME == "")
                 {
-                    //ARTIST_NAME = "Unknown";
-                    ARTIST_NAME = Microsoft.VisualBasic.Interaction.InputBox("Please supply an artist name.", "Title", "Unknown");
+                    if (CMDL_ARTIST_NAME != "unknown")
+                    {
+                        ARTIST_NAME = CMDL_ARTIST_NAME;
+                    }
+                    else
+                    {
+                        //ARTIST_NAME = "Unknown";
+                        ARTIST_NAME = Microsoft.VisualBasic.Interaction.InputBox("Please supply an artist name.", "Title", "Unknown");
+                    }
                 }
 
                 //MessageBox.Show("Artist: " + ARTIST_NAME + ". Song: " + SONG_NAME);
@@ -1898,10 +1915,27 @@ namespace BSAutoGenerator
 
                 //MessageBox.Show("Re-mapping.");
 
+                /*for (int i = 0; i < difficultyData.Count()-2; i++)
+                {// Copy expert down to others, so we can have high precision beats when regenerating below...
+                    difficultyData[i].colorNotes = difficultyData[difficultyData.Count()-2].colorNotes.ToList();
+                    difficultyData[i].burstSliders = difficultyData[difficultyData.Count()-2].burstSliders.ToList();
+                    difficultyData[i].obstacles = difficultyData[difficultyData.Count()-2].obstacles.ToList();
+                }*/
+                /*
+                for (int i = 0; i < difficultyData.Count() - 1; i++)
+                {// Copy expert down to others, so we can have high precision beats when regenerating below...
+                    if (difficultyData[i].colorNotes.Count() < 300)
+                    {// Only if it would be boring...
+                        difficultyData[i].colorNotes = difficultyData[i + 1].colorNotes.ToList();
+                        difficultyData[i].burstSliders = difficultyData[i + 1].burstSliders.ToList();
+                        difficultyData[i].obstacles = difficultyData[i + 1].obstacles.ToList();
+                    }
+                }*/
+
                 for (int i = 0; i < difficultyData.Count(); i++)
                 {
                     // Merge any close notes into doubles...
-                    (difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles) = NoteGenerator.CheckDoubles(difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles);
+                    (difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles) = NoteGenerator.CheckDoubles(difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles, i);
                     // Remap...
                     (difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles) = NoteGenerator.Remapper(difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles, USE_BEATSAGE_REMAP_DOUBLES);
 

@@ -373,7 +373,14 @@ namespace BSAutoGenerator.BeatSage_Downloader
             }
             else
             {
-                artistName = Microsoft.VisualBasic.Interaction.InputBox("Please supply an artist name.", "Title", "Unknown");
+                if (MainWindow.CMDL_ARTIST_NAME != "unknown")
+                {
+                    artistName = MainWindow.CMDL_ARTIST_NAME;
+                }
+                else
+                {
+                    artistName = Microsoft.VisualBasic.Interaction.InputBox("Please supply an artist name.", "Title", "Unknown");
+                }
             }
 
             //Console.WriteLine("2");

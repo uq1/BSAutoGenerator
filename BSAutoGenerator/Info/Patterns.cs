@@ -703,25 +703,25 @@ namespace BSAutoGenerator.Info.Patterns
             }
 
             if ((leftSwinging || upSwinging)
-                && (direction == CutDirection.UP_LEFT || direction == CutDirection.UP || direction == CutDirection.LEFT))
+                && (direction == CutDirection.UP_LEFT /*|| direction == CutDirection.UP || direction == CutDirection.LEFT*/))
             {
                 return true;
             }
 
             if ((rightSwinging || upSwinging)
-                && (direction == CutDirection.UP_RIGHT || direction == CutDirection.UP || direction == CutDirection.RIGHT))
+                && (direction == CutDirection.UP_RIGHT /*|| direction == CutDirection.UP || direction == CutDirection.RIGHT*/))
             {
                 return true;
             }
 
             if ((leftSwinging || downSwinging)
-                && (direction == CutDirection.DOWN_LEFT || direction == CutDirection.DOWN || direction == CutDirection.LEFT))
+                && (direction == CutDirection.DOWN_LEFT /*|| direction == CutDirection.DOWN || direction == CutDirection.LEFT*/))
             {
                 return true;
             }
 
             if ((rightSwinging || downSwinging)
-                && (direction == CutDirection.DOWN_RIGHT || direction == CutDirection.DOWN || direction == CutDirection.RIGHT))
+                && (direction == CutDirection.DOWN_RIGHT /*|| direction == CutDirection.DOWN || direction == CutDirection.RIGHT*/))
             {
                 return true;
             }
@@ -883,12 +883,12 @@ namespace BSAutoGenerator.Info.Patterns
             bool blueExists = false;
             bool blueSimilar = false;
 
-            /*int validStart = IsValidStartFrom(option, redPreviousNote, bluePreviousNote);
+            int validStart = IsValidStartFrom(option, redPreviousNote, bluePreviousNote);
 
             if (validStart == -1)
             {// Don't use this, starts on the same layer and line as a last note...
                 return 0;
-            }*/
+            }
 
             // Has this transition been seen in the mapping data?
             foreach (var reds in option.previousRedNotes)
@@ -923,12 +923,12 @@ namespace BSAutoGenerator.Info.Patterns
             }
             else
             {
-                /*if (validStart == 1)
+                if (validStart == 1)
                 {// Looks ok procedurally...
                     //return 4;
                     return 3;
                 }
-                */
+                
                 if (!redExists)
                 {// Find similar...
                     foreach (var reds in option.previousRedNotes)

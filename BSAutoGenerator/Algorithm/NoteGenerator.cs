@@ -248,21 +248,98 @@ namespace BSAutoGenerator.Algorithm
             return Remapper(notes, chains, obstacles, false);
         }
 
-        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) CheckDoubles(List<ColorNote> notes, List<BurstSliderData> chains, List<Obstacle> obstacles)
+        //const float BS_DOUBLE_COMBINE_TIME = 0.1f;
+        const float BS_DOUBLE_COMBINE_TIME = 1.0f;
+        //const float BS_DOUBLE_COMBINE_TIME = 0.75f;
+
+        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) CheckDoubles(List<ColorNote> notes, List<BurstSliderData> chains, List<Obstacle> obstacles, int difficulty)
         {
             try
             {
-                for (int i = 2; i < notes.Count; i++)
+                int num_notes_meged = 0;
+
+                bool skip = false;
+
+                float dif = (difficulty + 1);
+                float DIFFICULTY_TIME = BS_DOUBLE_COMBINE_TIME / (dif * 0.66f);
+
+                //for (int i = 2; i < notes.Count; i++)
+                for (int i = 1; i < notes.Count; i++)
                 {
-                    // Merge close (doubles) notes to the same time...
-                    if (notes[i].beat - notes[i - 1].beat >= -0.02 && notes[i].beat - notes[i - 1].beat <= 0.02)
+                    if (skip)
                     {
-                        notes[i - 1].beat = notes[i].beat;
+                        skip = false;
+                        continue;
+                    }
+
+                    skip = false;
+
+                    // Merge close (doubles) notes to the same time...
+                    if (notes[i].beat - notes[i - 1].beat >= -DIFFICULTY_TIME && notes[i].beat - notes[i - 1].beat <= DIFFICULTY_TIME)
+                    {
+                        notes[i].beat = notes[i - 1].beat;
+                        num_notes_meged++;
+                        skip = true;
                     }
                 }
 
                 // Make sure the notes list is sorted by beat...
                 notes.Sort((a, b) => a.beat.CompareTo(b.beat));
+
+                //System.Windows.MessageBox.Show("Merged " + num_notes_meged + " notes into doubles.");
+            }
+            catch (Exception e)
+            {
+                System.Windows.MessageBox.Show(e.ToString());
+            }
+
+            // We're done
+            return CheckDuplicates(notes, chains, obstacles);
+        }
+
+        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) CheckDuplicates(List<ColorNote> notes, List<BurstSliderData> chains, List<Obstacle> obstacles)
+        {
+            try
+            {
+                int num_dupes_removed = 0;
+
+                List<ColorNote> remove = new List<ColorNote>();
+
+                for (int i = 0; i < notes.Count; i++)
+                {
+                    float time = notes[i].beat;
+                    List<ColorNote> sameTimes = new List<ColorNote>();
+
+                    for (int j = 0; j < notes.Count; j++)
+                    {
+                        if (notes[j].beat == time)
+                        {
+                            sameTimes.Add(notes[j]);
+                        }
+                    }
+
+                    if (sameTimes.Count > 1)
+                    {
+                        for (int j = 2; j < sameTimes.Count; j++)
+                        {// Mark extras for removal...
+                            remove.Add(sameTimes[j]);
+                        }
+                    }
+                }
+
+                if (remove.Count > 0)
+                {
+                    for (int j = 0; j < remove.Count; j++)
+                    {
+                        notes.Remove(remove[j]);
+                        num_dupes_removed++;
+                    }
+                }
+
+                // Make sure the notes list is sorted by beat...
+                notes.Sort((a, b) => a.beat.CompareTo(b.beat));
+
+                //System.Windows.MessageBox.Show("Removed " + num_dupes_removed + " double duplicate notes.");
             }
             catch (Exception e)
             {

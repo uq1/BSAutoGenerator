@@ -71,6 +71,7 @@ namespace BSAutoGenerator
         public static bool USE_BEATSAGE = false;
         public static bool USE_BEATSAGE_REMAP = false;
         public static bool USE_BEATSAGE_REMAP_DOUBLES = false;
+        public static bool USE_REMAP = false;
         public static bool ENABLE_OBSTACLES = false;
         public static bool ENABLE_DOT_TRANSITIONS = false;
         public static string PATTERNS_FOLDER = "default";
@@ -218,6 +219,10 @@ namespace BSAutoGenerator
                     else if (arg.Contains("--beatsage", StringComparison.OrdinalIgnoreCase))
                     {
                         USE_BEATSAGE = true;
+                    }
+                    else if (arg.Contains("--remap", StringComparison.OrdinalIgnoreCase))
+                    {
+                        USE_REMAP = true;
                     }
                     else if (arg.Contains("--obstacles", StringComparison.OrdinalIgnoreCase))
                     {
@@ -639,6 +644,11 @@ namespace BSAutoGenerator
                 if (USE_BEATSAGE_REMAP || USE_BEATSAGE_REMAP_DOUBLES)
                 {
                     infoData._levelAuthorName = "BSAutoGenerator (RealFlow v4 BeatSage Remap)";
+                    infoData._customData._editors._lastEditedBy = infoData._levelAuthorName;
+                }
+                else if (USE_REMAP)
+                {
+                    infoData._levelAuthorName = "BSAutoGenerator (RealFlow v4 AI Remap)";
                     infoData._customData._editors._lastEditedBy = infoData._levelAuthorName;
                 }
                 else if (!USE_BEATSAGE)
@@ -1908,7 +1918,7 @@ namespace BSAutoGenerator
             //
             //MessageBox.Show("Processing.");
 
-            if (USE_BEATSAGE_REMAP || USE_BEATSAGE_REMAP_DOUBLES)
+            if (USE_BEATSAGE_REMAP || USE_BEATSAGE_REMAP_DOUBLES || USE_REMAP)
             {// Remap the beatsage output with the user's patterns. This way we keep timings from BS, but use the user's favorate patterns on notes...
                 string windowTitle = this.Title;
                 this.Title = windowTitle + "(Re-mapping)";
@@ -1937,7 +1947,7 @@ namespace BSAutoGenerator
                     // Merge any close notes into doubles...
                     (difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles) = NoteGenerator.CheckDoubles(difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles, i);
                     // Remap...
-                    (difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles) = NoteGenerator.Remapper(difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles, USE_BEATSAGE_REMAP_DOUBLES);
+                    (difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles) = NoteGenerator.Remapper(difficultyData[i].colorNotes, difficultyData[i].burstSliders, difficultyData[i].obstacles);
 
                     if (!ENABLE_OBSTACLES)
                     {// Obstacles are disabled, so remove the ones that beatsage added...

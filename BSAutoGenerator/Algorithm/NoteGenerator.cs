@@ -245,7 +245,7 @@ namespace BSAutoGenerator.Algorithm
             }
 
             // We're done
-            return Remapper(notes, chains, obstacles, false);
+            return Remapper(notes, chains, obstacles);
         }
 
         //const float BS_DOUBLE_COMBINE_TIME = 0.1f;
@@ -350,7 +350,7 @@ namespace BSAutoGenerator.Algorithm
             return (notes, chains, obstacles);
         }
 
-        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) Remapper(List<ColorNote> notes, List<BurstSliderData> chains, List<Obstacle> obstacles, bool onlyDoubles)
+        static public (List<ColorNote>, List<BurstSliderData>, List<Obstacle>) Remapper(List<ColorNote> notes, List<BurstSliderData> chains, List<Obstacle> obstacles)
         {
             // Create fake notes for blue and red to begin with...
             ColorNote previous_blue = null;
@@ -384,7 +384,7 @@ namespace BSAutoGenerator.Algorithm
                 previous_red = null;//new(timings[1], ColorType.RED, Line.MIDDLE_LEFT, Layer.BOTTOM, CutDirection.DOWN);
                 previous_blue = null;//new(timings[0], ColorType.BLUE, Line.MIDDLE_RIGHT, Layer.BOTTOM, CutDirection.DOWN);
 
-                if (!onlyDoubles)
+                if (/*!onlyDoubles*/MainWindow.USE_BEATSAGE_REMAP || MainWindow.USE_REMAP)
                 {
                     for (int i = 0; i < notes.Count - 1; i++)
                     {
@@ -600,128 +600,52 @@ if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
                 //
                 // Now over-ride the non-scripted double chains created above with scripted favorate ones provided by the user...
                 //
-                skipTo = 0;
-
-                previous_red = null;// new(timings[1], ColorType.RED, Line.MIDDLE_LEFT, Layer.BOTTOM, CutDirection.DOWN);
-                previous_blue = null;//new(timings[0], ColorType.BLUE, Line.MIDDLE_RIGHT, Layer.BOTTOM, CutDirection.DOWN);
-
-                for (int i = 1; i < notes.Count; i++)
+                if (MainWindow.USE_BEATSAGE_REMAP_DOUBLES || MainWindow.USE_REMAP)
                 {
-                    if (i <= skipTo && skipTo != 0)
-                    {// Already skip to the next double in chain...
-                        if (notes[i].color == ColorType.RED)
-                        {
-                            previous_red = notes[i];
-                        }
-                        else if (notes[i].color == ColorType.BLUE)
-                        {
-                            previous_blue = notes[i];
-                        }
-
-                        continue;
-                    }
-
                     skipTo = 0;
-                    int doubleChainCounter = 0;
 
-                    // Look for new chains...
-                    //for (int j = i - 1; j < i + scripted_chains.GetMaxAvailableChainLength() * 2 && j < notes.Count; j += 2)
-                    for (int j = 0; j < scripted_chains.GetMaxAvailableChainLength() * 2; j += 2)
+                    previous_red = null;// new(timings[1], ColorType.RED, Line.MIDDLE_LEFT, Layer.BOTTOM, CutDirection.DOWN);
+                    previous_blue = null;//new(timings[0], ColorType.BLUE, Line.MIDDLE_RIGHT, Layer.BOTTOM, CutDirection.DOWN);
+
+                    for (int i = 1; i < notes.Count; i++)
                     {
-                        if (j + i >= notes.Count) break;
-
-                        if (notes[j + i].beat == notes[j + i - 1].beat && doubleChainCounter < scripted_chains.GetMaxAvailableChainLength())
-                        {// Continue chain count...
-                            skipTo = i + j;// - 1;
-                            doubleChainCounter = j / 2;//(j - (i - 1)) / 2;
-                        }
-                        else
-                        {// Chain ends here...
-                            break;
-                        }
-                    }
-
-                    if (doubleChainCounter > 0)
-                    {// Have a chain, record it...
-                        ChainOption? chain = scripted_chains.SelectChainOfLength(doubleChainCounter, previous_red, previous_blue);
-
-                        if (chain != null)
-                        {// We have a player provided example chain to use, lets do that!
-                            int upto = 0;
-
-                            //MessageBox.Show("wanted= " + doubleChainCounter + " returned= " + chain.data.Count);
-
-                            float startBeat = notes[i - 1].beat;
-                            float endBeat = notes[skipTo - 1].beat;
-                            float patternDuration = endBeat - startBeat;
-
-                            for (int j = i - 1; j <= skipTo && j < notes.Count; j += 2)
+                        if (i <= skipTo && skipTo != 0)
+                        {// Already skip to the next double in chain...
+                            if (notes[i].color == ColorType.RED)
                             {
-                                //MessageBox.Show("j= " + j + " (" + (j + 1) + ")  upto= " + upto + " chainCount=" + chain.data.Count + " skipTo = " + skipTo + " notesCount= " + notes.Count);
-
-                                if (upto >= chain.data.Count)
-                                {
-                                    // Store this early-end point value for walls...
-                                    endBeat = notes[j].beat;
-                                    patternDuration = endBeat - startBeat;
-
-                                    skipTo = 0;
-                                    doubleChainCounter = 0;
-                                    break;
-                                }
-
-                                ColorNote note1 = notes[j];
-                                ColorNote note2 = notes[j + 1];
-
-                                ChainData cd = chain.data[upto];
-
-                                note1.line = cd.line1;
-                                note1.layer = cd.layer1;
-                                note1.color = cd.color1;
-                                note1.direction = cd.direction1;
-                                note1.angle = cd.angle1;
-
-                                note2.line = cd.line2;
-                                note2.layer = cd.layer2;
-                                note2.color = cd.color2;
-                                note2.direction = cd.direction2;
-                                note2.angle = cd.angle2;
-
-                                /*
-                                // Hmm, not on doubles...
-                                if (MainWindow.ENABLE_DOT_TRANSITIONS && upto == 0)
-                                {
-                                    note1.direction = CutDirection.ANY;
-                                    note2.direction = CutDirection.ANY;
-                                }
-                                */
-
-                                upto++;
+                                previous_red = notes[i];
+                            }
+                            else if (notes[i].color == ColorType.BLUE)
+                            {
+                                previous_blue = notes[i];
                             }
 
-#if _SCRIPTED_OBSTACLES_
-                            /*
-                            if (MainWindow.ENABLE_OBSTACLES)
-                            {
-                                if (chain.obstacles.Count > 0)
-                                {// Add walls as well...
-                                    for (int j = 0; j < chain.obstacles.Count; j++)
-                                    {
-                                        Obstacle wall = chain.obstacles[j];
-                                        Obstacle newWall = new Obstacle(startBeat + wall.beat, wall.index, wall.layer, MathF.Min(wall.duration, patternDuration), wall.width, wall.height);
-                                        obstacles.Add(newWall);
-                                    }
-                                }
-                            }*/
-#endif //_SCRIPTED_OBSTACLES_
+                            continue;
                         }
-                    }
-                    else
-                    {// A single note, or a loner double... Maybe do these into structures later as well, to also script those...
-                        if (notes[i - 1].beat == notes[i].beat)
-                        {// Add a lone double possibility to the list...
-                            //MessageBox.Show("Double without chain.");
-                            ChainOption? chain = scripted_chains.SelectChainOfLength(1, previous_red, previous_blue);
+
+                        skipTo = 0;
+                        int doubleChainCounter = 0;
+
+                        // Look for new chains...
+                        //for (int j = i - 1; j < i + scripted_chains.GetMaxAvailableChainLength() * 2 && j < notes.Count; j += 2)
+                        for (int j = 0; j < scripted_chains.GetMaxAvailableChainLength() * 2; j += 2)
+                        {
+                            if (j + i >= notes.Count) break;
+
+                            if (notes[j + i].beat == notes[j + i - 1].beat && doubleChainCounter < scripted_chains.GetMaxAvailableChainLength())
+                            {// Continue chain count...
+                                skipTo = i + j;// - 1;
+                                doubleChainCounter = j / 2;//(j - (i - 1)) / 2;
+                            }
+                            else
+                            {// Chain ends here...
+                                break;
+                            }
+                        }
+
+                        if (doubleChainCounter > 0)
+                        {// Have a chain, record it...
+                            ChainOption? chain = scripted_chains.SelectChainOfLength(doubleChainCounter, previous_red, previous_blue);
 
                             if (chain != null)
                             {// We have a player provided example chain to use, lets do that!
@@ -729,9 +653,24 @@ if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
 
                                 //MessageBox.Show("wanted= " + doubleChainCounter + " returned= " + chain.data.Count);
 
+                                float startBeat = notes[i - 1].beat;
+                                float endBeat = notes[skipTo - 1].beat;
+                                float patternDuration = endBeat - startBeat;
+
                                 for (int j = i - 1; j <= skipTo && j < notes.Count; j += 2)
                                 {
                                     //MessageBox.Show("j= " + j + " (" + (j + 1) + ")  upto= " + upto + " chainCount=" + chain.data.Count + " skipTo = " + skipTo + " notesCount= " + notes.Count);
+
+                                    if (upto >= chain.data.Count)
+                                    {
+                                        // Store this early-end point value for walls...
+                                        endBeat = notes[j].beat;
+                                        patternDuration = endBeat - startBeat;
+
+                                        skipTo = 0;
+                                        doubleChainCounter = 0;
+                                        break;
+                                    }
 
                                     ColorNote note1 = notes[j];
                                     ColorNote note2 = notes[j + 1];
@@ -761,17 +700,81 @@ if (added.Count > 0)        if (MainWindow.ENABLE_OBSTACLES)
 
                                     upto++;
                                 }
+
+#if _SCRIPTED_OBSTACLES_
+                            /*
+                            if (MainWindow.ENABLE_OBSTACLES)
+                            {
+                                if (chain.obstacles.Count > 0)
+                                {// Add walls as well...
+                                    for (int j = 0; j < chain.obstacles.Count; j++)
+                                    {
+                                        Obstacle wall = chain.obstacles[j];
+                                        Obstacle newWall = new Obstacle(startBeat + wall.beat, wall.index, wall.layer, MathF.Min(wall.duration, patternDuration), wall.width, wall.height);
+                                        obstacles.Add(newWall);
+                                    }
+                                }
+                            }*/
+#endif //_SCRIPTED_OBSTACLES_
                             }
                         }
-                    }
+                        else
+                        {// A single note, or a loner double... Maybe do these into structures later as well, to also script those...
+                            if (notes[i - 1].beat == notes[i].beat)
+                            {// Add a lone double possibility to the list...
+                             //MessageBox.Show("Double without chain.");
+                                ChainOption? chain = scripted_chains.SelectChainOfLength(1, previous_red, previous_blue);
 
-                    if (notes[i].color == ColorType.RED)
-                    {
-                        previous_red = notes[i];
-                    }
-                    else if (notes[i].color == ColorType.BLUE)
-                    {
-                        previous_blue = notes[i];
+                                if (chain != null)
+                                {// We have a player provided example chain to use, lets do that!
+                                    int upto = 0;
+
+                                    //MessageBox.Show("wanted= " + doubleChainCounter + " returned= " + chain.data.Count);
+
+                                    for (int j = i - 1; j <= skipTo && j < notes.Count; j += 2)
+                                    {
+                                        //MessageBox.Show("j= " + j + " (" + (j + 1) + ")  upto= " + upto + " chainCount=" + chain.data.Count + " skipTo = " + skipTo + " notesCount= " + notes.Count);
+
+                                        ColorNote note1 = notes[j];
+                                        ColorNote note2 = notes[j + 1];
+
+                                        ChainData cd = chain.data[upto];
+
+                                        note1.line = cd.line1;
+                                        note1.layer = cd.layer1;
+                                        note1.color = cd.color1;
+                                        note1.direction = cd.direction1;
+                                        note1.angle = cd.angle1;
+
+                                        note2.line = cd.line2;
+                                        note2.layer = cd.layer2;
+                                        note2.color = cd.color2;
+                                        note2.direction = cd.direction2;
+                                        note2.angle = cd.angle2;
+
+                                        /*
+                                        // Hmm, not on doubles...
+                                        if (MainWindow.ENABLE_DOT_TRANSITIONS && upto == 0)
+                                        {
+                                            note1.direction = CutDirection.ANY;
+                                            note2.direction = CutDirection.ANY;
+                                        }
+                                        */
+
+                                        upto++;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (notes[i].color == ColorType.RED)
+                        {
+                            previous_red = notes[i];
+                        }
+                        else if (notes[i].color == ColorType.BLUE)
+                        {
+                            previous_blue = notes[i];
+                        }
                     }
                 }
             }
